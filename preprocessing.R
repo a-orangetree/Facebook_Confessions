@@ -29,27 +29,26 @@ table(fcb_data$label)
 # write_csv(tibble(all_tokens), 'data/all_tokens.csv')
 all_tokens <- read_csv('data/all_tokens.csv')
 
-
 ########## Builds a Bag of Words for each Label ##############
 
 
-# None <- tibble()
-# Sex <- tibble()
-# Mental_Health <- tibble()
-# Money_Financial <- tibble()
-# Medical <- tibble()
-# Drugs <- tibble()
-# Race_ProtectedGroups <- tibble()
-# Excretions <- tibble()
-# Academics <- tibble()
-# Death <- tibble()
+None <- tibble()
+Sex <- tibble()
+Mental_Health <- tibble()
+Money_Financial <- tibble()
+Medical <- tibble()
+Drugs <- tibble()
+Race_ProtectedGroups <- tibble()
+Excretions <- tibble()
+Academics <- tibble()
+Death <- tibble()
 
 
 for (line in seq(1:length(fcb_data$text))) {
 
   tokens <- tibble(t = tokenize_words(fcb_data$text)[[line]]) %>%
-    filter(!t %in% stopwords('english')) %>%
-    mutate(t = stemDocument(t))
+    filter(!t %in% stopwords('english')) #%>%
+    # mutate(t = stemDocument(t))
 
   label <- fcb_data$label[line]
 
