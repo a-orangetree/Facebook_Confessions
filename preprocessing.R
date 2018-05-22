@@ -54,10 +54,15 @@ all_tokens <- read_csv('data/all_tokens.csv')
 # Academics_total_len <- 0
 # Death_total_len <- 0
 # 
+# ui_words <- c('you', "u", "ur", "your", "youre", "you're", "you'll", "you'd",'i', "i've", "i'd", "i'm", "i'll")
+# custom_stopwords <- stopwords('english')[!stopwords('english') %in% ui_words]
+# custom_stopwords <- c(custom_stopwords, 'like', 'just', 'can', 'will')
+# 
+# 
 # for (line in seq(1:length(fcb_data$text))) {
 # 
 #   tokens <- tibble(t = tokenize_words(fcb_data$text)[[line]]) %>%
-#     filter(!t %in% stopwords('english')) #%>%
+#     filter(!t %in% custom_stopwords) #%>%
 #     # mutate(t = stemDocument(t))
 # 
 #   label <- fcb_data$label[line]
@@ -117,13 +122,13 @@ all_tokens <- read_csv('data/all_tokens.csv')
 #           ,tibble(Death = Death_total_len)) %>%
 #   gather(key = 'label', value = 'num_words') %>%
 #   inner_join(number_lines, by = c('label'))
-
- 
-# summary <- summary %>% 
-#   mutate(avg_words = as.integer(num_words) / number_lines) # ??????????????????????????????
-
+# 
+# 
+# summary <- summary %>%
+#   mutate(avg_words = num_words / num_lines)
+# 
+# 
 # write_csv(summary, 'data/label_summary.csv')
-
 # 
 # 
 # None <- tibble(unlist(None))

@@ -63,6 +63,11 @@ Death <- Death %>%
   left_join(bing_dict, by = c('Death_words' = 'word')) %>% 
   left_join(nrc_dict, by = c('Death_words' = 'word'))
 
+word_count <- word_count %>% 
+  left_join(afinn_dict, by = c('words' = 'word')) %>% 
+  left_join(bing_dict, by = c('words' = 'word')) %>% 
+  left_join(nrc_dict, by = c('words' = 'word'))
+
 
 ########### AFINN
 mean_afinn <- bind_cols(select(filter(None, !is.na(afinn)), None_words, afinn) %>% 
@@ -97,8 +102,10 @@ mean_afinn <- bind_cols(select(filter(None, !is.na(afinn)), None_words, afinn) %
             summarise(Death = mean(afinn))) %>% 
   gather(key = 'label', value = 'mean_afinn')
 
+
 summary <- summary %>% 
   inner_join(mean_afinn, by = c('label'))
+
 
 
 ######## BING
@@ -138,8 +145,8 @@ summary <- summary %>%
   inner_join(mean_bing, by = c('label'))
 
 
-stop()
-################# NRC
+
+################# NRC #############################
 None_nrc <- filter(None, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('None' = 'n')
 Sex_nrc <- filter(Sex, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Sex' = 'n')
 Mental_nrc <- filter(Mental_Health, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Mental_Health' = 'n')
@@ -151,6 +158,7 @@ Excretions_nrc <- filter(Excretions, !is.na(nrc)) %>% count(nrc, sort = T) %>% r
 Academics_nrc <- filter(Academics, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Academics' = 'n')
 Death_nrc <- filter(Death, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Death' = 'n')
 
+
 nrc_summary <- inner_join(None_nrc, Sex_nrc, by = c('nrc')) %>% 
                   left_join(Mental_nrc, by = c('nrc')) %>% 
                   left_join(Money_nrc, by = c('nrc')) %>% 
@@ -160,6 +168,12 @@ nrc_summary <- inner_join(None_nrc, Sex_nrc, by = c('nrc')) %>%
                   left_join(Excretions_nrc, by = c('nrc')) %>% 
                   left_join(Academics_nrc, by = c('nrc')) %>% 
                   left_join(Death_nrc, by = c('nrc')) 
+
+
+nrc_col_sums <- as_tibble(cbind('label' = names(nrc_summary)[-1]
+          , 'total_nrc' = colSums(nrc_summary[,-1]))) %>% 
+  mutate(total_nrc = as.integer(total_nrc))
+
 
 nrc_summary <- as_tibble(cbind(label = names(nrc_summary), t(nrc_summary))) %>% 
   rename(., 'negative' = 'V1'
@@ -183,3 +197,35 @@ nrc_summary <- as_tibble(cbind(label = names(nrc_summary), t(nrc_summary))) %>%
          ,joy = as.integer(joy)
          ,disgust = as.integer(disgust)
          ,surprise = as.integer(surprise))
+
+
+nrc_summary_perc <- as_tibble(sweep(nrc_summary[,-1] %>% as.matrix(), 1, nrc_col_sums[,-1] %>% as.matrix(), '/')) %>% 
+  mutate(label = nrc_summary$label)
+
+summary <- summary %>% 
+  inner_join(nrc_summary_perc, by = c('label'))
+
+
+######## Hierarchical Clustering ############
+
+
+summary_scaled <- scale(summary[-1])
+
+# Complete Linkage
+hierarchical_cluster_complete <- hclust(dist(summary_scaled), method = 'complete')
+plot(hierarchical_cluster_complete, main = "Complete Linkage", xlab = "" , sub = "")
+
+cutree(hierarchical_cluster_complete, 3)
+
+# Average Linkage
+hierarchical_cluster_avg <- hclust(dist(summary_scaled), method = 'average')
+plot(hierarchical_cluster_avg, main = "Average Linkage", xlab = "" , sub = "")
+
+cutree(hierarchical_cluster_avg, 3)
+
+
+############# K-Means Clustering #####################
+
+
+# Not useful?
+kmeans(summary_scaled, 4, nstart = 20)
