@@ -1,3 +1,5 @@
+library(knitr)
+
 ######## Create Word Counts for EACH Label #################
 
 
@@ -34,9 +36,9 @@ Race_ProtectedGroups <- tibble(Race_words = names(table(Race_ProtectedGroups)), 
   mutate(Race_perc_total = round(count / dim(.)[1], 4)) %>% 
   arrange(desc(count))
 
-Excretions <- tibble(Excretions_words = names(table(Excretions)), count = table(Excretions)) %>% 
-  mutate(Excretions_perc_total = round(count / dim(.)[1], 4)) %>% 
-  arrange(desc(count))
+# Excretions <- tibble(Excretions_words = names(table(Excretions)), count = table(Excretions)) %>% 
+#   mutate(Excretions_perc_total = round(count / dim(.)[1], 4)) %>% 
+#   arrange(desc(count))
 
 Academics <- tibble(Academics_words = names(table(Academics)), count = table(Academics)) %>% 
   mutate(Academics_perc_total = round(count / dim(.)[1], 4)) %>% 
@@ -73,11 +75,13 @@ Money_i <- sum(filter(Money_Financial, Money_words %in% i_words)$Money_perc_tota
 Medical_i <- sum(filter(Medical, Medical_words %in% i_words)$Medical_perc_total)
 Drugs_i <- sum(filter(Drugs, Drugs_words %in% i_words)$Drugs_perc_total)
 Race_i <- sum(filter(Race_ProtectedGroups, Race_words %in% i_words)$Race_perc_total)
-Excretions_i <- sum(filter(Excretions, Excretions_words %in% i_words)$Excretions_perc_total)
+# Excretions_i <- sum(filter(Excretions, Excretions_words %in% i_words)$Excretions_perc_total)
 Academics_i <- sum(filter(Academics, Academics_words %in% i_words)$Academics_perc_total)
 Death_i <- sum(filter(Death, Death_words %in% i_words)$Death_perc_total)
 
-summary$i_words <- c(None_i, Sex_i, Mental_i, Money_i, Medical_i, Drugs_i, Race_i, Excretions_i, Academics_i, Death_i)
+summary$i_words <- c(None_i, Sex_i, Mental_i, Money_i, Medical_i, Drugs_i, Race_i
+                     # , Excretions_i
+                     , Academics_i, Death_i)
 
 
 ########## You Words ########################
@@ -92,42 +96,44 @@ Money_u <- sum(filter(Money_Financial, Money_words %in% u_words)$Money_perc_tota
 Medical_u <- sum(filter(Medical, Medical_words %in% u_words)$Medical_perc_total)
 Drugs_u <- sum(filter(Drugs, Drugs_words %in% u_words)$Drugs_perc_total)
 Race_u <- sum(filter(Race_ProtectedGroups, Race_words %in% u_words)$Race_perc_total)
-Excretions_u <- sum(filter(Excretions, Excretions_words %in% u_words)$Excretions_perc_total)
+# Excretions_u <- sum(filter(Excretions, Excretions_words %in% u_words)$Excretions_perc_total)
 Academics_u <- sum(filter(Academics, Academics_words %in% u_words)$Academics_perc_total)
 Death_u <- sum(filter(Death, Death_words %in% u_words)$Death_perc_total)
 
-summary$u_words <- c(None_u, Sex_u, Mental_u, Money_u, Medical_u, Drugs_u, Race_u, Excretions_u, Academics_u, Death_u)
+summary$u_words <- c(None_u, Sex_u, Mental_u, Money_u, Medical_u, Drugs_u, Race_u
+                     # , Excretions_u
+                     , Academics_u, Death_u)
 
 summary <- summary %>% 
   mutate(i_to_u_ratio = i_words / u_words)
 
+
 ########### Combined Top and Bottom words #################
 
+top_words <- 10
+(top_500_words <- bind_cols(None[1:top_words,c(1,3)]
+                            , Sex[1:top_words,c(1,3)]
+                            , Mental_Health[1:top_words,c(1,3)]
+                            , Money_Financial[1:top_words,c(1,3)]
+                            , Medical[1:top_words,c(1,3)]
+                            , Drugs[1:top_words,c(1,3)]
+                            , Race_ProtectedGroups[1:top_words,c(1,3)]
+                            # , Excretions[1:top_words,c(1,3)]
+                            , Academics[1:top_words,c(1,3)]
+                            , Death[1:top_words,c(1,3)]))
 
-(top_500_words <- bind_cols(None[1:500,c(1,3)]
-                            , Sex[1:500,c(1,3)]
-                            , Mental_Health[1:500,c(1,3)]
-                            , Money_Financial[1:500,c(1,3)]
-                            , Medical[1:500,c(1,3)]
-                            , Drugs[1:500,c(1,3)]
-                            , Race_ProtectedGroups[1:500,c(1,3)]
-                            , Excretions[1:500,c(1,3)]
-                            , Academics[1:500,c(1,3)]
-                            , Death[1:500,c(1,3)]))
-
-
-# Medical does not have enough words to get to 1000
-(bottom_500_words <- bind_cols(tail(None, 500)[1]
-                               , tail(Sex, 500)[1]
-                               , tail(Mental_Health, 500)[1]
-                               , tail(Money_Financial, 500)[1]
-                               , tail(Medical, 500)[1]
-                               , tail(Drugs, 500)[1]
-                               , tail(Race_ProtectedGroups, 500)[1]
-                               , tail(Excretions, 500)[1]
-                               , tail(Academics, 500)[1]
-                               , tail(Death, 500)[1]))
-
+# bottom_words <- 500
+# # Medical does not have enough words to get to 1000
+# (bottom_500_words <- bind_cols(tail(None, bottom_words)[1]
+#                                , tail(Sex, bottom_words)[1]
+#                                , tail(Mental_Health, bottom_words)[1]
+#                                , tail(Money_Financial, bottom_words)[1]
+#                                , tail(Medical, bottom_words)[1]
+#                                , tail(Drugs, bottom_words)[1]
+#                                , tail(Race_ProtectedGroups, bottom_words)[1]
+#                                # , tail(Excretions, 500)[1]
+#                                , tail(Academics, bottom_words)[1]
+#                                , tail(Death, bottom_words)[1]))
 
 ############ Top 10 Percent ################
 

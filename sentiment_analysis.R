@@ -48,10 +48,10 @@ Race_ProtectedGroups <- Race_ProtectedGroups %>%
   left_join(bing_dict, by = c('Race_words' = 'word')) %>% 
   left_join(nrc_dict, by = c('Race_words' = 'word'))
 
-Excretions <- Excretions %>% 
-  left_join(afinn_dict, by = c('Excretions_words' = 'word')) %>% 
-  left_join(bing_dict, by = c('Excretions_words' = 'word')) %>% 
-  left_join(nrc_dict, by = c('Excretions_words' = 'word'))
+# Excretions <- Excretions %>% 
+#   left_join(afinn_dict, by = c('Excretions_words' = 'word')) %>% 
+#   left_join(bing_dict, by = c('Excretions_words' = 'word')) %>% 
+#   left_join(nrc_dict, by = c('Excretions_words' = 'word'))
 
 Academics <- Academics %>% 
   left_join(afinn_dict, by = c('Academics_words' = 'word')) %>% 
@@ -91,9 +91,9 @@ mean_afinn <- bind_cols(select(filter(None, !is.na(afinn)), None_words, afinn) %
           ,select(filter(Race_ProtectedGroups, !is.na(afinn)), Race_words, afinn) %>% 
             unique() %>% 
             summarise(Race_ProtectedGroups = mean(afinn))
-          ,select(filter(Excretions, !is.na(afinn)), Excretions_words, afinn) %>% 
-            unique() %>% 
-            summarise(Excretions = mean(afinn))
+          # ,select(filter(Excretions, !is.na(afinn)), Excretions_words, afinn) %>% 
+          #   unique() %>% 
+          #   summarise(Excretions = mean(afinn))
           ,select(filter(Academics, !is.na(afinn)), Academics_words, afinn) %>% 
             unique() %>% 
             summarise(Academics = mean(afinn))
@@ -130,9 +130,9 @@ mean_bing <- bind_cols(select(filter(None, !is.na(bing)), None_words, bing) %>%
                         ,select(filter(Race_ProtectedGroups, !is.na(bing)), Race_words, bing) %>% 
                           unique() %>% 
                           summarise(Race_ProtectedGroups = mean(bing))
-                        ,select(filter(Excretions, !is.na(bing)), Excretions_words, bing) %>% 
-                          unique() %>% 
-                          summarise(Excretions = mean(bing))
+                        # ,select(filter(Excretions, !is.na(bing)), Excretions_words, bing) %>% 
+                          # unique() %>% 
+                          # summarise(Excretions = mean(bing))
                         ,select(filter(Academics, !is.na(bing)), Academics_words, bing) %>% 
                           unique() %>% 
                           summarise(Academics = mean(bing))
@@ -154,7 +154,7 @@ Money_nrc <- filter(Money_Financial, !is.na(nrc)) %>% count(nrc, sort = T) %>% r
 Medical_nrc <- filter(Medical, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Medical' = 'n')
 Drugs_nrc <- filter(Drugs, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Drugs' = 'n')
 Race_nrc <- filter(Race_ProtectedGroups, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Race_ProtectedGroups' = 'n')
-Excretions_nrc <- filter(Excretions, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Excretions' = 'n')
+# Excretions_nrc <- filter(Excretions, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Excretions' = 'n')
 Academics_nrc <- filter(Academics, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Academics' = 'n')
 Death_nrc <- filter(Death, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Death' = 'n')
 
@@ -165,7 +165,7 @@ nrc_summary <- inner_join(None_nrc, Sex_nrc, by = c('nrc')) %>%
                   left_join(Medical_nrc, by = c('nrc')) %>% 
                   left_join(Drugs_nrc, by = c('nrc')) %>% 
                   left_join(Race_nrc, by = c('nrc')) %>% 
-                  left_join(Excretions_nrc, by = c('nrc')) %>% 
+                  # left_join(Excretions_nrc, by = c('nrc')) %>% 
                   left_join(Academics_nrc, by = c('nrc')) %>% 
                   left_join(Death_nrc, by = c('nrc')) 
 

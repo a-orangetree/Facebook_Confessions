@@ -8,7 +8,8 @@ library(tm)
 
 fcb_data <- read_csv('data/FCB.csv') 
 
-fcb_data <- fcb_data %>% 
+fcb_data <- fcb_data %>%
+  filter(!text == 'NA' & !is.na(text)) %>% 
   select(-X1) %>% 
   mutate(label = str_replace(label, 'Mental Health', 'Mental_Health')
          ,label = str_replace(label, 'Money/Financial', 'Money_Financial')
@@ -17,6 +18,7 @@ fcb_data <- fcb_data %>%
 (number_lines <- count(fcb_data, label) %>% 
     rename('num_lines' = 'n'))
 
+# fcb_data %>% filter(str_detect(text, 'TAMU'))
 ####### Builds a Bag of Words ################
 
 
@@ -28,6 +30,7 @@ fcb_data <- fcb_data %>%
 # }
 # write_csv(tibble(all_tokens), 'data/all_tokens.csv')
 all_tokens <- read_csv('data/all_tokens.csv')
+non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
 
 ########## Builds a Bag of Words for each Label ##############
 
@@ -39,7 +42,7 @@ all_tokens <- read_csv('data/all_tokens.csv')
 # Medical <- tibble()
 # Drugs <- tibble()
 # Race_ProtectedGroups <- tibble()
-# Excretions <- tibble()
+# # Excretions <- tibble()
 # Academics <- tibble()
 # Death <- tibble()
 # 
@@ -50,7 +53,7 @@ all_tokens <- read_csv('data/all_tokens.csv')
 # Medical_total_len <- 0
 # Drugs_total_len <- 0
 # Race_total_len <- 0
-# Excretions_total_len <- 0
+# # Excretions_total_len <- 0
 # Academics_total_len <- 0
 # Death_total_len <- 0
 # 
@@ -67,7 +70,7 @@ all_tokens <- read_csv('data/all_tokens.csv')
 # 
 #   label <- fcb_data$label[line]
 # 
-#   if (label == 'None') {
+#   if (label == 'None' | label == 'Excretions') {
 #     None <- c(None, tokens)
 #     None_total_len <- None_total_len + length(tokens$t)
 #     }
@@ -95,10 +98,10 @@ all_tokens <- read_csv('data/all_tokens.csv')
 #     Race_ProtectedGroups <- c(Race_ProtectedGroups, tokens)
 #     Race_total_len <- Race_total_len + length(tokens$t)
 #     }
-#   else if (label == 'Excretions') {
-#     Excretions <- c(Excretions, tokens)
-#     Excretions_total_len <- Excretions_total_len + length(tokens$t)
-#     }
+#   # else if (label == 'Excretions') {
+#   #   Excretions <- c(Excretions, tokens)
+#   #   Excretions_total_len <- Excretions_total_len + length(tokens$t)
+#   #   }
 #   else if (label == 'Academics') {
 #     Academics <- c(Academics, tokens)
 #     Academics_total_len <- Academics_total_len + length(tokens$t)
@@ -117,7 +120,7 @@ all_tokens <- read_csv('data/all_tokens.csv')
 #           ,tibble(Medical = Medical_total_len)
 #           ,tibble(Drugs = Drugs_total_len)
 #           ,tibble(Race_ProtectedGroups = Race_total_len)
-#           ,tibble(Excretions = Excretions_total_len)
+#           # ,tibble(Excretions = Excretions_total_len)
 #           ,tibble(Academics = Academics_total_len)
 #           ,tibble(Death = Death_total_len)) %>%
 #   gather(key = 'label', value = 'num_words') %>%
@@ -138,7 +141,7 @@ all_tokens <- read_csv('data/all_tokens.csv')
 # Money_Financial <- tibble(unlist(Money_Financial))
 # Drugs <- tibble(unlist(Drugs))
 # Race_ProtectedGroups <- tibble(unlist(Race_ProtectedGroups))
-# Excretions <- tibble(unlist(Excretions))
+# # Excretions <- tibble(unlist(Excretions))
 # Academics <- tibble(unlist(Academics))
 # Death <- tibble(unlist(Death))
 # 
@@ -150,7 +153,7 @@ all_tokens <- read_csv('data/all_tokens.csv')
 # write_csv(Medical, 'data/Medical_words.csv')
 # write_csv(Drugs, 'data/Drugs_words.csv')
 # write_csv(Race_ProtectedGroups, 'data/Race_words.csv')
-# write_csv(Excretions, 'data/Excretions_words.csv')
+# # write_csv(Excretions, 'data/Excretions_words.csv')
 # write_csv(Academics, 'data/Academics_words.csv')
 # write_csv(Death, 'data/Death_words.csv')
 
@@ -162,7 +165,7 @@ Money_Financial <- read_csv('data/Money_words.csv', col_names = F)
 Medical <- read_csv('data/Medical_words.csv', col_names = F)
 Drugs <- read_csv('data/Drugs_words.csv', col_names = F)
 Race_ProtectedGroups <- read_csv('data/Race_words.csv', col_names = F)
-Excretions <- read_csv('data/Excretions_words.csv', col_names = F)
+# Excretions <- read_csv('data/Excretions_words.csv', col_names = F)
 Academics <- read_csv('data/Academics_words.csv', col_names = F)
 Death <- read_csv('data/Death_words.csv', col_names = F)
 
