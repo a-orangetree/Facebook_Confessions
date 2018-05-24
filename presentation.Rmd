@@ -1,15 +1,13 @@
 # Facebook Confessions Forum Data
 
-<br>
-<br>
+#### These are forum posts. Some of which have been manually label, most of which hasn't.
 
-### We start with forum posts. Some of which have been manually label, most of which hasn't...
-
-<br>
-
-#### Note: the labels aren't perfect.
+#### Problem: the training labels don't necessarily match their content.
 
 <br>
+
+<br>
+
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # Import libraries
@@ -19,6 +17,7 @@ library(tm)
 library(knitr)
 library(ggthemes)
 library(tidytext)
+library(topicmodels)
 ```
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
@@ -218,9 +217,7 @@ top_500_words <- bind_cols(None_clean[1:top_words,1]
 
 <br>
 
-### Top 5 words in each group
-
-<br>
+### Top 5 words in each category
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 top_500_words %>% rename(None = None_words
@@ -237,7 +234,9 @@ top_500_words %>% rename(None = None_words
 
 <br>
 
-### Are any of the groups more Narcissistic or Altruistic?
+## Are any of our categories more Narcissistic or Altruistic?
+
+<br>
 
 #### I-words = i, i'd, i've, i'll, i'm
 
@@ -245,7 +244,7 @@ top_500_words %>% rename(None = None_words
 
 <br>
 
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
 graph_summary <- summary %>% gather()
 labels <- filter(graph_summary, key == 'label')$value
 
@@ -259,16 +258,14 @@ ggplot(graph_summary2, aes(x = key, y = value)) +
   geom_bar(stat = 'identity', aes(fill = key)) +
   coord_flip() +
   facet_wrap(~ label) +
+  ggtitle("Number of 'I-words' vs Number of 'U-words'") +
   theme_economist_white()
 ```
 
-<br>
-
-### The Ratio of "I-words" to "U-words"
 
 <br>
 
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
 graph_summary3 <- graph_summary %>% 
   mutate(value = round(as.double(value), 4)
          ,label = rep(labels, nrow(.)/9)) %>% 
@@ -278,6 +275,7 @@ graph_summary3 <- graph_summary %>%
 ggplot(graph_summary2, aes(x = reorder(label, value), y = value)) +
   geom_bar(stat = 'identity', fill = 'black') +
   coord_flip()+
+  ggtitle("Ratio of 'I-words' to 'U-words'") +
   theme_fivethirtyeight()
 ```
 
@@ -489,7 +487,49 @@ summary <- summary %>%
   inner_join(nrc_summary_perc, by = c('label'))
 ```
 
+<br>
+
+## Hierarchical Clustering
+
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
+## Clustering 
+summary_scaled <- scale(summary[-1])
+
+# Complete Linkage
+hierarchical_cluster_complete <- hclust(dist(summary_scaled), method = 'complete')
+# plot(hierarchical_cluster_complete, main = "Complete Linkage", xlab = "" , sub = "")
+```
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+s1 <- summary
+s1$cut_complete <- cutree(hierarchical_cluster_complete, 3)
+kable(select(s1, label, cut_complete), align=c(rep('c',times=2)))
+```
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# Average Linkage
+hierarchical_cluster_avg <- hclust(dist(summary_scaled), method = 'average')
+# plot(hierarchical_cluster_avg, main = "Average Linkage", xlab = "" , sub = "")
+```
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+s1$cut_average <- cutree(hierarchical_cluster_avg, 3)
+kable(select(s1, label, cut_average), align=c(rep('c',times=4)))
+```
+
+<br>
+
+## Sentiment Analysis
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
 graph_summary <- summary %>% gather()
 labels <- filter(graph_summary, key == 'label')$value
 
@@ -505,16 +545,114 @@ ggplot(graph_summary1, aes(x = label, y = value)) +
   geom_bar(stat = 'identity', fill = 'black') +
   coord_flip() +
   facet_wrap(~ key) +
+  ggtitle("Category by Sentiment") +
   theme_economist()
 ```
 
 <br>
 
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
 # Plot2
 ggplot(graph_summary1, aes(x = key, y = value)) +
   geom_bar(stat = 'identity', fill = 'black') +
   coord_flip() +
   facet_wrap(~ label) +
+  ggtitle("Sentiment by Category") +
   theme_economist()
+```
+
+<br>
+
+## Topic Modeling
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+######## Create a corpus ##########################
+dfCorpus2 <- VCorpus(VectorSource(fcb_data$text)) # words
+
+
+############ Pre-process #######################
+
+dfCorpus2 <- tm_map(dfCorpus2, stripWhitespace)
+dfCorpus2 <- tm_map(dfCorpus2, removePunctuation)
+dfCorpus2 <- tm_map(dfCorpus2, removeNumbers)
+dfCorpus2 <- tm_map(dfCorpus2, content_transformer(tolower))
+dfCorpus2 <- tm_map(dfCorpus2, removeWords, stopwords("english"))
+dfCorpus2 <- tm_map(dfCorpus2, stemDocument)
+
+myStopwords <- c('can', 'say', 'one', 'way', 'use', 'also', 'howev', 'tell', 'will', 'much', 'take'
+                 ,'tend', 'even', 'like', 'particular', 'rather', 'said', 'get', 'well', 'make', 'ask', 'come'
+                 ,'end', 'first', 'two', 'help', 'often', 'may', 'might', 'see', 'someth', 'thing', 'point'
+                 ,'post', 'look', 'right', 'now', 'think', 'anoth', 'put', 'set', 'new', 'want', 'sure', 'kind'
+                 ,'larg', 'yes', 'day', 'etc', 'quit', 'sinc', 'attempt', 'lack', 'seen', 'awar', 'littl', 'ever'
+                 ,'moreov', 'though', 'found', 'abl', 'enough', 'far', 'earli', 'away', 'achiev', 'draw', 'last'
+                 ,'brief', 'bit', 'entir', 'lot', 'wish', 'what', 'just', 'that', 'let', 'dont', 'cant', 'still')
+
+dfCorpus2 <- tm_map(dfCorpus2, removeWords, myStopwords)
+
+
+################# Create Document-Term-Matrix #####################
+dtm <- DocumentTermMatrix(dfCorpus2)
+
+################## Create LDA ########################
+
+
+burnin <- 4000
+iter <- 2000
+thin <- 500
+seed <- list(2003, 5, 63, 100001, 765)
+nstart <- 5
+k <- 15
+
+lda_out <- LDA(dtm, k, method = 'Gibbs'
+               , control = list(nstart = nstart, seed = seed, burnin = burnin, iter = iter, thin = thin))
+```
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 11, fig.width = 11, fig.align = "center"}
+# Create word probabilities for each document
+lda_word_probs <- tidy(lda_out, matrix = 'beta')
+
+# Displays word probabilities
+lda_top_terms <- lda_word_probs %>%
+  group_by(topic) %>%
+  top_n(6, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+lda_top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip() +
+  ggtitle("Top Words per Topic")
+```
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# View each document's topic
+topics <- topics(lda_out)
+
+if (length(topics) == length(fcb_data$text)) { 
+  
+  fcb_data$topic = topics 
+  
+  fcb_data <- fcb_data %>% group_by(label)
+  table1 <- table(filter(fcb_data, label != 'None')$label, filter(fcb_data, label != 'None')$topic)
+  table2 <- table(filter(fcb_data, label == 'None')$label, filter(fcb_data, label == 'None')$topic)
+  }
+```
+
+### Do any of our categories fall into our topics?
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+kable(table1)
+```
+
+<br>
+
+### Can we identify any clear, new topics?
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+kable(table2)
 ```
