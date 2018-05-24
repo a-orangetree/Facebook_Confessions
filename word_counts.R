@@ -49,6 +49,49 @@ Death <- tibble(Death_words = names(table(Death)), count = table(Death)) %>%
   arrange(desc(count))
 
 
+############## Word Counts for CLEAN ###################### 
+
+
+None_clean <- tibble(None_words = names(table(None_clean)), count = table(None_clean)) %>% 
+  mutate(None_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Sex_clean <- tibble(Sex_words = names(table(Sex_clean)), count = table(Sex_clean)) %>% 
+  mutate(Sex_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Mental_Health_clean <- tibble(Mental_words = names(table(Mental_Health_clean)), count = table(Mental_Health_clean)) %>% 
+  mutate(Mental_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Money_Financial_clean <- tibble(Money_words = names(table(Money_Financial_clean)), count = table(Money_Financial_clean)) %>% 
+  mutate(Money_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Medical_clean <- tibble(Medical_words = names(table(Medical_clean)), count = table(Medical_clean)) %>% 
+  mutate(Medical_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Drugs_clean <- tibble(Drugs_words = names(table(Drugs_clean)), count = table(Drugs_clean)) %>% 
+  mutate(Drugs_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Race_ProtectedGroups_clean <- tibble(Race_words = names(table(Race_ProtectedGroups_clean)), count = table(Race_ProtectedGroups_clean)) %>% 
+  mutate(Race_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+# Excretions <- tibble(Excretions_words = names(table(Excretions)), count = table(Excretions)) %>% 
+#   mutate(Excretions_perc_total = round(count / dim(.)[1], 4)) %>% 
+#   arrange(desc(count))
+
+Academics_clean <- tibble(Academics_words = names(table(Academics_clean)), count = table(Academics_clean)) %>% 
+  mutate(Academics_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Death_clean <- tibble(Death_words = names(table(Death_clean)), count = table(Death_clean)) %>% 
+  mutate(Death_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
 ############## Stopword identification ###################
 
 
@@ -110,17 +153,17 @@ summary <- summary %>%
 
 ########### Combined Top and Bottom words #################
 
-top_words <- 10
-(top_500_words <- bind_cols(None[1:top_words,c(1,3)]
-                            , Sex[1:top_words,c(1,3)]
-                            , Mental_Health[1:top_words,c(1,3)]
-                            , Money_Financial[1:top_words,c(1,3)]
-                            , Medical[1:top_words,c(1,3)]
-                            , Drugs[1:top_words,c(1,3)]
-                            , Race_ProtectedGroups[1:top_words,c(1,3)]
+top_words <- 5
+top_500_words <- bind_cols(None_clean[1:top_words,c(1,3)]
+                            , Sex_clean[1:top_words,c(1,3)]
+                            , Mental_Health_clean[1:top_words,c(1,3)]
+                            , Money_Financial_clean[1:top_words,c(1,3)]
+                            , Medical_clean[1:top_words,c(1,3)]
+                            , Drugs_clean[1:top_words,c(1,3)]
+                            , Race_ProtectedGroups_clean[1:top_words,c(1,3)]
                             # , Excretions[1:top_words,c(1,3)]
-                            , Academics[1:top_words,c(1,3)]
-                            , Death[1:top_words,c(1,3)]))
+                            , Academics_clean[1:top_words,c(1,3)]
+                            , Death_clean[1:top_words,c(1,3)])
 
 # bottom_words <- 500
 # # Medical does not have enough words to get to 1000

@@ -36,7 +36,7 @@ dtm <- DocumentTermMatrix(dfCorpus2)
 inspect(dtm)
 
 # Displays most frequent terms
-View(findFreqTerms(dtm, 500))
+findFreqTerms(dtm, 500)
 
 # Displays words associated with particular terms
 findAssocs(dtm, "tamu", 0.3)
@@ -54,9 +54,9 @@ iter <- 2000
 thin <- 500
 seed <- list(2003, 5, 63, 100001, 765)
 nstart <- 5
-k <- 15
+k <- 10
 
-lda_out <- LDA(dtm2, k, method = 'Gibbs'
+lda_out <- LDA(dtm, k, method = 'Gibbs'
                , control = list(nstart = nstart, seed = seed, burnin = burnin, iter = iter, thin = thin))
 
 # View each document's topic
@@ -67,7 +67,8 @@ if (length(topics) == length(fcb_data$text)) {
   fcb_data$topic = topics 
   
   fcb_data <- fcb_data %>% group_by(label)
-  kable(table(filter(fcb_data, label != 'None')$label, filter(fcb_data, label != 'None')$topic))
+  table(filter(fcb_data, label != 'None')$label, filter(fcb_data, label != 'None')$topic)
+  table(filter(fcb_data, label == 'None')$label, filter(fcb_data, label == 'None')$topic)
   }
 # write_csv(arrange(fcb_data, topic), '~/Desktop/fcb_data_withTopics.csv')
 
@@ -80,7 +81,7 @@ lda_word_probs <- tidy(lda_out, matrix = 'beta')
 # Displays word probabilities
 lda_top_terms <- lda_word_probs %>%
   group_by(topic) %>%
-  top_n(6, beta) %>%
+  top_n(10, beta) %>%
   ungroup() %>%
   arrange(topic, -beta)
 

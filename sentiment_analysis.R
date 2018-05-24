@@ -13,37 +13,37 @@ bing_dict <- get_sentiments("bing") %>%
   
 nrc_dict <- get_sentiments("nrc") %>% rename('nrc' = 'sentiment')
 
-None <- None %>% 
+None_clean <- None_clean %>% 
   left_join(afinn_dict, by = c('None_words' = 'word')) %>% 
   left_join(bing_dict, by = c('None_words' = 'word')) %>% 
   left_join(nrc_dict, by = c('None_words' = 'word'))
 
-Sex <- Sex %>% 
+Sex_clean <- Sex_clean %>% 
   left_join(afinn_dict, by = c('Sex_words' = 'word')) %>% 
   left_join(bing_dict, by = c('Sex_words' = 'word')) %>% 
   left_join(nrc_dict, by = c('Sex_words' = 'word'))
 
-Mental_Health <- Mental_Health %>% 
+Mental_Health_clean <- Mental_Health_clean %>% 
   left_join(afinn_dict, by = c('Mental_words' = 'word')) %>% 
   left_join(bing_dict, by = c('Mental_words' = 'word')) %>% 
   left_join(nrc_dict, by = c('Mental_words' = 'word'))
 
-Money_Financial <- Money_Financial %>% 
+Money_Financial_clean <- Money_Financial_clean %>% 
   left_join(afinn_dict, by = c('Money_words' = 'word')) %>% 
   left_join(bing_dict, by = c('Money_words' = 'word')) %>% 
   left_join(nrc_dict, by = c('Money_words' = 'word'))
 
-Medical <- Medical %>% 
+Medical_clean <- Medical_clean %>% 
   left_join(afinn_dict, by = c('Medical_words' = 'word')) %>% 
   left_join(bing_dict, by = c('Medical_words' = 'word')) %>% 
   left_join(nrc_dict, by = c('Medical_words' = 'word'))
 
-Drugs <- Drugs %>% 
+Drugs_clean <- Drugs_clean %>% 
   left_join(afinn_dict, by = c('Drugs_words' = 'word')) %>% 
   left_join(bing_dict, by = c('Drugs_words' = 'word')) %>% 
   left_join(nrc_dict, by = c('Drugs_words' = 'word'))
 
-Race_ProtectedGroups <- Race_ProtectedGroups %>% 
+Race_ProtectedGroups_clean <- Race_ProtectedGroups_clean %>% 
   left_join(afinn_dict, by = c('Race_words' = 'word')) %>% 
   left_join(bing_dict, by = c('Race_words' = 'word')) %>% 
   left_join(nrc_dict, by = c('Race_words' = 'word'))
@@ -53,12 +53,12 @@ Race_ProtectedGroups <- Race_ProtectedGroups %>%
 #   left_join(bing_dict, by = c('Excretions_words' = 'word')) %>% 
 #   left_join(nrc_dict, by = c('Excretions_words' = 'word'))
 
-Academics <- Academics %>% 
+Academics_clean <- Academics_clean %>% 
   left_join(afinn_dict, by = c('Academics_words' = 'word')) %>% 
   left_join(bing_dict, by = c('Academics_words' = 'word')) %>% 
   left_join(nrc_dict, by = c('Academics_words' = 'word'))
 
-Death <- Death %>% 
+Death_clean <- Death_clean %>% 
   left_join(afinn_dict, by = c('Death_words' = 'word')) %>% 
   left_join(bing_dict, by = c('Death_words' = 'word')) %>% 
   left_join(nrc_dict, by = c('Death_words' = 'word'))
@@ -70,34 +70,34 @@ word_count <- word_count %>%
 
 
 ########### AFINN
-mean_afinn <- bind_cols(select(filter(None, !is.na(afinn)), None_words, afinn) %>% 
+mean_afinn <- bind_cols(select(filter(None_clean, !is.na(afinn)), None_words, afinn) %>% 
                           unique() %>% 
                           summarise(None = mean(afinn))
-          ,select(filter(Sex, !is.na(afinn)), Sex_words, afinn) %>% 
+          ,select(filter(Sex_clean, !is.na(afinn)), Sex_words, afinn) %>% 
             unique() %>% 
             summarise(Sex = mean(afinn))
-          ,select(filter(Mental_Health, !is.na(afinn)), Mental_words, afinn) %>% 
+          ,select(filter(Mental_Health_clean, !is.na(afinn)), Mental_words, afinn) %>% 
             unique() %>% 
             summarise(Mental_Health = mean(afinn))
-          ,select(filter(Money_Financial, !is.na(afinn)), Money_words, afinn) %>% 
+          ,select(filter(Money_Financial_clean, !is.na(afinn)), Money_words, afinn) %>% 
             unique() %>% 
             summarise(Money_Financial = mean(afinn))
-          ,select(filter(Medical, !is.na(afinn)), Medical_words, afinn) %>% 
+          ,select(filter(Medical_clean, !is.na(afinn)), Medical_words, afinn) %>% 
             unique() %>% 
             summarise(Medical = mean(afinn))
-          ,select(filter(Drugs, !is.na(afinn)), Drugs_words, afinn) %>% 
+          ,select(filter(Drugs_clean, !is.na(afinn)), Drugs_words, afinn) %>% 
             unique() %>% 
             summarise(Drugs = mean(afinn))
-          ,select(filter(Race_ProtectedGroups, !is.na(afinn)), Race_words, afinn) %>% 
+          ,select(filter(Race_ProtectedGroups_clean, !is.na(afinn)), Race_words, afinn) %>% 
             unique() %>% 
             summarise(Race_ProtectedGroups = mean(afinn))
           # ,select(filter(Excretions, !is.na(afinn)), Excretions_words, afinn) %>% 
           #   unique() %>% 
           #   summarise(Excretions = mean(afinn))
-          ,select(filter(Academics, !is.na(afinn)), Academics_words, afinn) %>% 
+          ,select(filter(Academics_clean, !is.na(afinn)), Academics_words, afinn) %>% 
             unique() %>% 
             summarise(Academics = mean(afinn))
-          ,select(filter(Death, !is.na(afinn)), Death_words, afinn) %>% 
+          ,select(filter(Death_clean, !is.na(afinn)), Death_words, afinn) %>% 
             unique() %>% 
             summarise(Death = mean(afinn))) %>% 
   gather(key = 'label', value = 'mean_afinn')
@@ -109,34 +109,34 @@ summary <- summary %>%
 
 
 ######## BING
-mean_bing <- bind_cols(select(filter(None, !is.na(bing)), None_words, bing) %>% 
+mean_bing <- bind_cols(select(filter(None_clean, !is.na(bing)), None_words, bing) %>% 
                           unique() %>% 
                           summarise(None = mean(bing))
-                        ,select(filter(Sex, !is.na(bing)), Sex_words, bing) %>% 
+                        ,select(filter(Sex_clean, !is.na(bing)), Sex_words, bing) %>% 
                           unique() %>% 
                           summarise(Sex = mean(bing))
-                        ,select(filter(Mental_Health, !is.na(bing)), Mental_words, bing) %>% 
+                        ,select(filter(Mental_Health_clean, !is.na(bing)), Mental_words, bing) %>% 
                           unique() %>% 
                           summarise(Mental_Health = mean(bing))
-                        ,select(filter(Money_Financial, !is.na(bing)), Money_words, bing) %>% 
+                        ,select(filter(Money_Financial_clean, !is.na(bing)), Money_words, bing) %>% 
                           unique() %>% 
                           summarise(Money_Financial = mean(bing))
-                        ,select(filter(Medical, !is.na(bing)), Medical_words, bing) %>% 
+                        ,select(filter(Medical_clean, !is.na(bing)), Medical_words, bing) %>% 
                           unique() %>% 
                           summarise(Medical = mean(bing))
-                        ,select(filter(Drugs, !is.na(bing)), Drugs_words, bing) %>% 
+                        ,select(filter(Drugs_clean, !is.na(bing)), Drugs_words, bing) %>% 
                           unique() %>% 
                           summarise(Drugs = mean(bing))
-                        ,select(filter(Race_ProtectedGroups, !is.na(bing)), Race_words, bing) %>% 
+                        ,select(filter(Race_ProtectedGroups_clean, !is.na(bing)), Race_words, bing) %>% 
                           unique() %>% 
                           summarise(Race_ProtectedGroups = mean(bing))
                         # ,select(filter(Excretions, !is.na(bing)), Excretions_words, bing) %>% 
                           # unique() %>% 
                           # summarise(Excretions = mean(bing))
-                        ,select(filter(Academics, !is.na(bing)), Academics_words, bing) %>% 
+                        ,select(filter(Academics_clean, !is.na(bing)), Academics_words, bing) %>% 
                           unique() %>% 
                           summarise(Academics = mean(bing))
-                        ,select(filter(Death, !is.na(bing)), Death_words, bing) %>% 
+                        ,select(filter(Death_clean, !is.na(bing)), Death_words, bing) %>% 
                           unique() %>% 
                           summarise(Death = mean(bing))) %>% 
   gather(key = 'label', value = 'mean_bing')
@@ -147,16 +147,16 @@ summary <- summary %>%
 
 
 ################# NRC #############################
-None_nrc <- filter(None, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('None' = 'n')
-Sex_nrc <- filter(Sex, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Sex' = 'n')
-Mental_nrc <- filter(Mental_Health, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Mental_Health' = 'n')
-Money_nrc <- filter(Money_Financial, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Money_Financial' = 'n')
-Medical_nrc <- filter(Medical, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Medical' = 'n')
-Drugs_nrc <- filter(Drugs, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Drugs' = 'n')
-Race_nrc <- filter(Race_ProtectedGroups, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Race_ProtectedGroups' = 'n')
-# Excretions_nrc <- filter(Excretions, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Excretions' = 'n')
-Academics_nrc <- filter(Academics, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Academics' = 'n')
-Death_nrc <- filter(Death, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Death' = 'n')
+None_nrc <- filter(None_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('None' = 'n')
+Sex_nrc <- filter(Sex_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Sex' = 'n')
+Mental_nrc <- filter(Mental_Health_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Mental_Health' = 'n')
+Money_nrc <- filter(Money_Financial_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Money_Financial' = 'n')
+Medical_nrc <- filter(Medical_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Medical' = 'n')
+Drugs_nrc <- filter(Drugs_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Drugs' = 'n')
+Race_nrc <- filter(Race_ProtectedGroups_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Race_ProtectedGroups' = 'n')
+# Excretions_nrc <- filter(Excretions_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Excretions' = 'n')
+Academics_nrc <- filter(Academics_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Academics' = 'n')
+Death_nrc <- filter(Death_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Death' = 'n')
 
 
 nrc_summary <- inner_join(None_nrc, Sex_nrc, by = c('nrc')) %>% 

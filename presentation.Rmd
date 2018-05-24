@@ -1,0 +1,520 @@
+# Facebook Confessions Forum Data
+
+<br>
+<br>
+
+### We start with forum posts. Some of which have been manually label, most of which hasn't...
+
+<br>
+
+#### Note: the labels aren't perfect.
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# Import libraries
+library(tidyverse)
+library(tokenizers)
+library(tm)
+library(knitr)
+library(ggthemes)
+library(tidytext)
+```
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# Import data
+fcb_data <- read_csv('data/FCB.csv') 
+all_tokens <- read_csv('data/all_tokens.csv')
+
+fcb_data <- fcb_data %>%
+  filter(!text == 'NA' & !is.na(text)) %>% 
+  select(-X1) %>% 
+  mutate(label = str_replace(label, 'Mental Health', 'Mental_Health')
+         ,label = str_replace(label, 'Money/Financial', 'Money_Financial')
+         ,label = str_replace(label, 'Race/Protected Groups', 'Race_ProtectedGroups'))
+
+number_lines <- count(fcb_data, label) %>% rename('num_lines' = 'n')
+
+None <- read_csv('data/None_words.csv', col_names = F)
+Sex <- read_csv('data/Sex_words.csv', col_names = F)
+Mental_Health <- read_csv('data/Mental_words.csv', col_names = F)
+Money_Financial <- read_csv('data/Money_words.csv', col_names = F)
+Medical <- read_csv('data/Medical_words.csv', col_names = F)
+Drugs <- read_csv('data/Drugs_words.csv', col_names = F)
+Race_ProtectedGroups <- read_csv('data/Race_words.csv', col_names = F)
+# Excretions <- read_csv('data/Excretions_words.csv', col_names = F)
+Academics <- read_csv('data/Academics_words.csv', col_names = F)
+Death <- read_csv('data/Death_words.csv', col_names = F)
+
+None_clean <- read_csv('data/None_words_clean.csv', col_names = F)
+Sex_clean <- read_csv('data/Sex_words_clean.csv', col_names = F)
+Mental_Health_clean <- read_csv('data/Mental_words_clean.csv', col_names = F)
+Money_Financial_clean <- read_csv('data/Money_words_clean.csv', col_names = F)
+Medical_clean <- read_csv('data/Medical_words_clean.csv', col_names = F)
+Drugs_clean <- read_csv('data/Drugs_words_clean.csv', col_names = F)
+Race_ProtectedGroups_clean <- read_csv('data/Race_words_clean.csv', col_names = F)
+# Excretions_clean <- read_csv('data/Excretions_words_clean.csv', col_names = F)
+Academics_clean <- read_csv('data/Academics_words_clean.csv', col_names = F)
+Death_clean <- read_csv('data/Death_words_clean.csv', col_names = F)
+
+summary <- read_csv('data/label_summary.csv') %>% 
+  mutate(avg_words = round(avg_words))
+
+kable(summary, align=c(rep('c',times=4)))
+```
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+######## Create Word Counts for EACH Label #################
+word_count <- tibble(words = names(table(all_tokens)), count = table(all_tokens)) %>% 
+  mutate(all_perc_total = round(count / dim(.)[1], 4)) %>% 
+  filter(!words %in% stopwords('english')) %>%
+  arrange(desc(count))
+
+None_clean <- tibble(None_words = names(table(None_clean)), count = table(None_clean)) %>% 
+  mutate(None_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Sex_clean <- tibble(Sex_words = names(table(Sex_clean)), count = table(Sex_clean)) %>% 
+  mutate(Sex_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Mental_Health_clean <- tibble(Mental_words = names(table(Mental_Health_clean)), count = table(Mental_Health_clean)) %>% 
+  mutate(Mental_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Money_Financial_clean <- tibble(Money_words = names(table(Money_Financial_clean)), count = table(Money_Financial_clean)) %>% 
+  mutate(Money_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Medical_clean <- tibble(Medical_words = names(table(Medical_clean)), count = table(Medical_clean)) %>% 
+  mutate(Medical_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Drugs_clean <- tibble(Drugs_words = names(table(Drugs_clean)), count = table(Drugs_clean)) %>% 
+  mutate(Drugs_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Race_ProtectedGroups_clean <- tibble(Race_words = names(table(Race_ProtectedGroups_clean)), count = table(Race_ProtectedGroups_clean)) %>% 
+  mutate(Race_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+# Excretions <- tibble(Excretions_words = names(table(Excretions)), count = table(Excretions)) %>% 
+#   mutate(Excretions_perc_total = round(count / dim(.)[1], 4)) %>% 
+#   arrange(desc(count))
+
+Academics_clean <- tibble(Academics_words = names(table(Academics_clean)), count = table(Academics_clean)) %>% 
+  mutate(Academics_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Death_clean <- tibble(Death_words = names(table(Death_clean)), count = table(Death_clean)) %>% 
+  mutate(Death_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+```
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+word_count <- tibble(words = names(table(all_tokens)), count = table(all_tokens)) %>% 
+  mutate(all_perc_total = round(count / dim(.)[1], 4)) %>% 
+  filter(!words %in% stopwords('english')) %>%
+  arrange(desc(count))
+
+None <- tibble(None_words = names(table(None)), count = table(None)) %>% 
+  mutate(None_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Sex <- tibble(Sex_words = names(table(Sex)), count = table(Sex)) %>% 
+  mutate(Sex_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Mental_Health <- tibble(Mental_words = names(table(Mental_Health)), count = table(Mental_Health)) %>% 
+  mutate(Mental_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Money_Financial <- tibble(Money_words = names(table(Money_Financial)), count = table(Money_Financial)) %>% 
+  mutate(Money_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Medical <- tibble(Medical_words = names(table(Medical)), count = table(Medical)) %>% 
+  mutate(Medical_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Drugs <- tibble(Drugs_words = names(table(Drugs)), count = table(Drugs)) %>% 
+  mutate(Drugs_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Race_ProtectedGroups <- tibble(Race_words = names(table(Race_ProtectedGroups)), count = table(Race_ProtectedGroups)) %>% 
+  mutate(Race_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+# Excretions <- tibble(Excretions_words = names(table(Excretions)), count = table(Excretions)) %>% 
+#   mutate(Excretions_perc_total = round(count / dim(.)[1], 4)) %>% 
+#   arrange(desc(count))
+
+Academics <- tibble(Academics_words = names(table(Academics)), count = table(Academics)) %>% 
+  mutate(Academics_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+Death <- tibble(Death_words = names(table(Death)), count = table(Death)) %>% 
+  mutate(Death_perc_total = round(count / dim(.)[1], 4)) %>% 
+  arrange(desc(count))
+
+
+
+########### i words
+i_words <- c('i', "i've", "i'd", "i'm", "i'll")
+
+None_i <- sum(filter(None, None_words %in% i_words)$None_perc_total)
+Sex_i <- sum(filter(Sex, Sex_words %in% i_words)$Sex_perc_total)
+Mental_i <- sum(filter(Mental_Health, Mental_words %in% i_words)$Mental_perc_total)
+Money_i <- sum(filter(Money_Financial, Money_words %in% i_words)$Money_perc_total)
+Medical_i <- sum(filter(Medical, Medical_words %in% i_words)$Medical_perc_total)
+Drugs_i <- sum(filter(Drugs, Drugs_words %in% i_words)$Drugs_perc_total)
+Race_i <- sum(filter(Race_ProtectedGroups, Race_words %in% i_words)$Race_perc_total)
+# Excretions_i <- sum(filter(Excretions, Excretions_words %in% i_words)$Excretions_perc_total)
+Academics_i <- sum(filter(Academics, Academics_words %in% i_words)$Academics_perc_total)
+Death_i <- sum(filter(Death, Death_words %in% i_words)$Death_perc_total)
+
+summary$i_words <- c(None_i, Sex_i, Mental_i, Money_i, Medical_i, Drugs_i, Race_i
+                     # , Excretions_i                     
+                     , Academics_i, Death_i)
+
+
+########## You Words ########################
+u_words <- c('you', "u", "ur", "your", "youre", "you're", "you'll", "you'd")
+
+# unique(all_tokens) %>% arrange(all_tokens) %>% View()
+None_u <- sum(filter(None, None_words %in% u_words)$None_perc_total)
+Sex_u <- sum(filter(Sex, Sex_words %in% u_words)$Sex_perc_total)
+Mental_u <- sum(filter(Mental_Health, Mental_words %in% u_words)$Mental_perc_total)
+Money_u <- sum(filter(Money_Financial, Money_words %in% u_words)$Money_perc_total)
+Medical_u <- sum(filter(Medical, Medical_words %in% u_words)$Medical_perc_total)
+Drugs_u <- sum(filter(Drugs, Drugs_words %in% u_words)$Drugs_perc_total)
+Race_u <- sum(filter(Race_ProtectedGroups, Race_words %in% u_words)$Race_perc_total)
+# Excretions_u <- sum(filter(Excretions, Excretions_words %in% u_words)$Excretions_perc_total)
+Academics_u <- sum(filter(Academics, Academics_words %in% u_words)$Academics_perc_total)
+Death_u <- sum(filter(Death, Death_words %in% u_words)$Death_perc_total)
+
+summary$u_words <- c(None_u, Sex_u, Mental_u, Money_u, Medical_u, Drugs_u, Race_u, Academics_u, Death_u)
+
+summary <- summary %>% 
+  mutate(i_to_u_ratio = i_words / u_words)
+
+
+####### Top Words ################
+top_words <- 5
+top_500_words <- bind_cols(None_clean[1:top_words,1]
+                              , Sex_clean[1:top_words,1]
+                            , Mental_Health_clean[1:top_words,1]
+                            , Money_Financial_clean[1:top_words,1]
+                            , Medical_clean[1:top_words,1]
+                            , Drugs_clean[1:top_words,1]
+                            , Race_ProtectedGroups_clean[1:top_words,1]
+                            # , Excretions[1:top_words,1]
+                            , Academics_clean[1:top_words,1]
+                            , Death_clean[1:top_words,1])
+```
+
+<br>
+
+### Top 5 words in each group
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+top_500_words %>% rename(None = None_words
+                         ,Sex = Sex_words
+                         ,Mental = Mental_words
+                         ,Money = Money_words
+                         ,Medical = Medical_words
+                         ,Drugs = Drugs_words
+                         ,Race = Race_words
+                         ,Academics = Academics_words
+                         ,Death = Death_words) %>% 
+  kable()
+```
+
+<br>
+
+### Are any of the groups more Narcissistic or Altruistic?
+
+#### I-words = i, i'd, i've, i'll, i'm
+
+#### U-words = you, u, ur, your, youre, you're, you'll, you'd
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+graph_summary <- summary %>% gather()
+labels <- filter(graph_summary, key == 'label')$value
+
+graph_summary2 <- graph_summary %>% 
+  mutate(value = round(as.double(value), 4)
+         ,label = rep(labels, nrow(.)/9)) %>% 
+  filter(key %in% c('i_words', 'u_words'))
+
+# Plot3
+ggplot(graph_summary2, aes(x = key, y = value)) +
+  geom_bar(stat = 'identity', aes(fill = key)) +
+  coord_flip() +
+  facet_wrap(~ label) +
+  theme_economist_white()
+```
+
+<br>
+
+### The Ratio of "I-words" to "U-words"
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+graph_summary3 <- graph_summary %>% 
+  mutate(value = round(as.double(value), 4)
+         ,label = rep(labels, nrow(.)/9)) %>% 
+  filter(key %in% c('i_to_u_ratio'))
+
+# Plot4
+ggplot(graph_summary2, aes(x = reorder(label, value), y = value)) +
+  geom_bar(stat = 'identity', fill = 'black') +
+  coord_flip()+
+  theme_fivethirtyeight()
+```
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+############## Sentiment Analysis ######################
+
+
+afinn_dict <- get_sentiments("afinn") %>% rename('afinn' = 'score')
+
+bing_dict <- get_sentiments("bing") %>% 
+  rename('bing' = 'sentiment') %>% 
+  mutate(bing = ifelse(bing == 'negative', 0, ifelse(bing == 'positive', 1, NA))
+         ,bing = as.integer(bing))
+  
+nrc_dict <- get_sentiments("nrc") %>% rename('nrc' = 'sentiment')
+
+None_clean <- None_clean %>% 
+  left_join(afinn_dict, by = c('None_words' = 'word')) %>% 
+  left_join(bing_dict, by = c('None_words' = 'word')) %>% 
+  left_join(nrc_dict, by = c('None_words' = 'word'))
+
+Sex_clean <- Sex_clean %>% 
+  left_join(afinn_dict, by = c('Sex_words' = 'word')) %>% 
+  left_join(bing_dict, by = c('Sex_words' = 'word')) %>% 
+  left_join(nrc_dict, by = c('Sex_words' = 'word'))
+
+Mental_Health_clean <- Mental_Health_clean %>% 
+  left_join(afinn_dict, by = c('Mental_words' = 'word')) %>% 
+  left_join(bing_dict, by = c('Mental_words' = 'word')) %>% 
+  left_join(nrc_dict, by = c('Mental_words' = 'word'))
+
+Money_Financial_clean <- Money_Financial_clean %>% 
+  left_join(afinn_dict, by = c('Money_words' = 'word')) %>% 
+  left_join(bing_dict, by = c('Money_words' = 'word')) %>% 
+  left_join(nrc_dict, by = c('Money_words' = 'word'))
+
+Medical_clean <- Medical_clean %>% 
+  left_join(afinn_dict, by = c('Medical_words' = 'word')) %>% 
+  left_join(bing_dict, by = c('Medical_words' = 'word')) %>% 
+  left_join(nrc_dict, by = c('Medical_words' = 'word'))
+
+Drugs_clean <- Drugs_clean %>% 
+  left_join(afinn_dict, by = c('Drugs_words' = 'word')) %>% 
+  left_join(bing_dict, by = c('Drugs_words' = 'word')) %>% 
+  left_join(nrc_dict, by = c('Drugs_words' = 'word'))
+
+Race_ProtectedGroups_clean <- Race_ProtectedGroups_clean %>% 
+  left_join(afinn_dict, by = c('Race_words' = 'word')) %>% 
+  left_join(bing_dict, by = c('Race_words' = 'word')) %>% 
+  left_join(nrc_dict, by = c('Race_words' = 'word'))
+
+# Excretions <- Excretions %>% 
+#   left_join(afinn_dict, by = c('Excretions_words' = 'word')) %>% 
+#   left_join(bing_dict, by = c('Excretions_words' = 'word')) %>% 
+#   left_join(nrc_dict, by = c('Excretions_words' = 'word'))
+
+Academics_clean <- Academics_clean %>% 
+  left_join(afinn_dict, by = c('Academics_words' = 'word')) %>% 
+  left_join(bing_dict, by = c('Academics_words' = 'word')) %>% 
+  left_join(nrc_dict, by = c('Academics_words' = 'word'))
+
+Death_clean <- Death_clean %>% 
+  left_join(afinn_dict, by = c('Death_words' = 'word')) %>% 
+  left_join(bing_dict, by = c('Death_words' = 'word')) %>% 
+  left_join(nrc_dict, by = c('Death_words' = 'word'))
+
+word_count <- word_count %>% 
+  left_join(afinn_dict, by = c('words' = 'word')) %>% 
+  left_join(bing_dict, by = c('words' = 'word')) %>% 
+  left_join(nrc_dict, by = c('words' = 'word'))
+
+
+########### AFINN
+mean_afinn <- bind_cols(select(filter(None_clean, !is.na(afinn)), None_words, afinn) %>% 
+                          unique() %>% 
+                          summarise(None = mean(afinn))
+          ,select(filter(Sex_clean, !is.na(afinn)), Sex_words, afinn) %>% 
+            unique() %>% 
+            summarise(Sex = mean(afinn))
+          ,select(filter(Mental_Health_clean, !is.na(afinn)), Mental_words, afinn) %>% 
+            unique() %>% 
+            summarise(Mental_Health = mean(afinn))
+          ,select(filter(Money_Financial_clean, !is.na(afinn)), Money_words, afinn) %>% 
+            unique() %>% 
+            summarise(Money_Financial = mean(afinn))
+          ,select(filter(Medical_clean, !is.na(afinn)), Medical_words, afinn) %>% 
+            unique() %>% 
+            summarise(Medical = mean(afinn))
+          ,select(filter(Drugs_clean, !is.na(afinn)), Drugs_words, afinn) %>% 
+            unique() %>% 
+            summarise(Drugs = mean(afinn))
+          ,select(filter(Race_ProtectedGroups_clean, !is.na(afinn)), Race_words, afinn) %>% 
+            unique() %>% 
+            summarise(Race_ProtectedGroups = mean(afinn))
+          # ,select(filter(Excretions, !is.na(afinn)), Excretions_words, afinn) %>% 
+          #   unique() %>% 
+          #   summarise(Excretions = mean(afinn))
+          ,select(filter(Academics_clean, !is.na(afinn)), Academics_words, afinn) %>% 
+            unique() %>% 
+            summarise(Academics = mean(afinn))
+          ,select(filter(Death_clean, !is.na(afinn)), Death_words, afinn) %>% 
+            unique() %>% 
+            summarise(Death = mean(afinn))) %>% 
+  gather(key = 'label', value = 'mean_afinn')
+
+
+summary <- summary %>% 
+  inner_join(mean_afinn, by = c('label'))
+
+
+
+######## BING
+mean_bing <- bind_cols(select(filter(None_clean, !is.na(bing)), None_words, bing) %>% 
+                          unique() %>% 
+                          summarise(None = mean(bing))
+                        ,select(filter(Sex_clean, !is.na(bing)), Sex_words, bing) %>% 
+                          unique() %>% 
+                          summarise(Sex = mean(bing))
+                        ,select(filter(Mental_Health_clean, !is.na(bing)), Mental_words, bing) %>% 
+                          unique() %>% 
+                          summarise(Mental_Health = mean(bing))
+                        ,select(filter(Money_Financial_clean, !is.na(bing)), Money_words, bing) %>% 
+                          unique() %>% 
+                          summarise(Money_Financial = mean(bing))
+                        ,select(filter(Medical_clean, !is.na(bing)), Medical_words, bing) %>% 
+                          unique() %>% 
+                          summarise(Medical = mean(bing))
+                        ,select(filter(Drugs_clean, !is.na(bing)), Drugs_words, bing) %>% 
+                          unique() %>% 
+                          summarise(Drugs = mean(bing))
+                        ,select(filter(Race_ProtectedGroups_clean, !is.na(bing)), Race_words, bing) %>% 
+                          unique() %>% 
+                          summarise(Race_ProtectedGroups = mean(bing))
+                        # ,select(filter(Excretions, !is.na(bing)), Excretions_words, bing) %>% 
+                          # unique() %>% 
+                          # summarise(Excretions = mean(bing))
+                        ,select(filter(Academics_clean, !is.na(bing)), Academics_words, bing) %>% 
+                          unique() %>% 
+                          summarise(Academics = mean(bing))
+                        ,select(filter(Death_clean, !is.na(bing)), Death_words, bing) %>% 
+                          unique() %>% 
+                          summarise(Death = mean(bing))) %>% 
+  gather(key = 'label', value = 'mean_bing')
+
+summary <- summary %>% 
+  inner_join(mean_bing, by = c('label'))
+
+
+
+################# NRC #############################
+None_nrc <- filter(None_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('None' = 'n')
+Sex_nrc <- filter(Sex_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Sex' = 'n')
+Mental_nrc <- filter(Mental_Health_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Mental_Health' = 'n')
+Money_nrc <- filter(Money_Financial_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Money_Financial' = 'n')
+Medical_nrc <- filter(Medical_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Medical' = 'n')
+Drugs_nrc <- filter(Drugs_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Drugs' = 'n')
+Race_nrc <- filter(Race_ProtectedGroups_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Race_ProtectedGroups' = 'n')
+# Excretions_nrc <- filter(Excretions_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Excretions' = 'n')
+Academics_nrc <- filter(Academics_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Academics' = 'n')
+Death_nrc <- filter(Death_clean, !is.na(nrc)) %>% count(nrc, sort = T) %>% rename('Death' = 'n')
+
+
+nrc_summary <- inner_join(None_nrc, Sex_nrc, by = c('nrc')) %>% 
+                  left_join(Mental_nrc, by = c('nrc')) %>% 
+                  left_join(Money_nrc, by = c('nrc')) %>% 
+                  left_join(Medical_nrc, by = c('nrc')) %>% 
+                  left_join(Drugs_nrc, by = c('nrc')) %>% 
+                  left_join(Race_nrc, by = c('nrc')) %>% 
+                  # left_join(Excretions_nrc, by = c('nrc')) %>% 
+                  left_join(Academics_nrc, by = c('nrc')) %>% 
+                  left_join(Death_nrc, by = c('nrc')) 
+
+
+nrc_col_sums <- as_tibble(cbind('label' = names(nrc_summary)[-1]
+          , 'total_nrc' = colSums(nrc_summary[,-1]))) %>% 
+  mutate(total_nrc = as.integer(total_nrc))
+
+
+nrc_summary <- as_tibble(cbind(label = names(nrc_summary), t(nrc_summary))) %>% 
+  rename(., 'negative' = 'V1'
+         ,'positive' = 'V2'
+         ,'trust' = 'V3'
+         ,'fear' = 'V4'
+         ,'sadness' = 'V5'
+         ,'anger' = 'V6'
+         ,'anticipation' = 'V7'
+         ,'joy' = 'V8'
+         ,'disgust' = 'V9'
+         ,'surprise' = 'V10') %>% 
+  filter(label != 'nrc') %>% 
+  mutate(negative = as.integer(negative)
+         ,positive = as.integer(positive)
+         ,trust = as.integer(trust)
+         ,fear = as.integer(fear)
+         ,sadness = as.integer(sadness)
+         ,anger = as.integer(anger)
+         ,anticipation = as.integer(anticipation)
+         ,joy = as.integer(joy)
+         ,disgust = as.integer(disgust)
+         ,surprise = as.integer(surprise))
+
+
+nrc_summary_perc <- as_tibble(sweep(nrc_summary[,-1] %>% as.matrix(), 1, nrc_col_sums[,-1] %>% as.matrix(), '/')) %>% 
+  mutate(label = nrc_summary$label)
+
+summary <- summary %>% 
+  inner_join(nrc_summary_perc, by = c('label'))
+```
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+graph_summary <- summary %>% gather()
+labels <- filter(graph_summary, key == 'label')$value
+
+graph_summary1 <- graph_summary %>% 
+  mutate(value = round(as.double(value), 4)
+    ,label = rep(labels, nrow(.)/9)) %>%   
+  filter(!key %in% c('label', 'num_words', 'num_lines', 'avg_words', 'i_words', 'u_words'
+                     , 'i_to_u_ratio', 'mean_afinn', 'mean_bing'))
+
+
+# Plot1
+ggplot(graph_summary1, aes(x = label, y = value)) +
+  geom_bar(stat = 'identity', fill = 'black') +
+  coord_flip() +
+  facet_wrap(~ key) +
+  theme_economist()
+```
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# Plot2
+ggplot(graph_summary1, aes(x = key, y = value)) +
+  geom_bar(stat = 'identity', fill = 'black') +
+  coord_flip() +
+  facet_wrap(~ label) +
+  theme_economist()
+```
