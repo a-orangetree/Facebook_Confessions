@@ -54,10 +54,18 @@ iter <- 2000
 thin <- 500
 seed <- list(2003, 5, 63, 100001, 765)
 nstart <- 5
-k <- 10
+k <- 100
 
-lda_out <- LDA(dtm, k, method = 'Gibbs'
-               , control = list(nstart = nstart, seed = seed, burnin = burnin, iter = iter, thin = thin))
+# lda_out <- LDA(dtm, k, method = 'Gibbs'
+#                , control = list(nstart = nstart, seed = seed, burnin = burnin, iter = iter, thin = thin))
+
+lda_out <- LDA(dtm, 5)
+
+posterior(lda_out)
+
+# save(lda_out, file = 'data/lda_100.object')
+lda_out <- load('data/lda_10.object')
+lda_out100 <- load('data/lda_100.object')
 
 # View each document's topic
 topics <- topics(lda_out)
@@ -67,9 +75,28 @@ if (length(topics) == length(fcb_data$text)) {
   fcb_data$topic = topics 
   
   fcb_data <- fcb_data %>% group_by(label)
-  table(filter(fcb_data, label != 'None')$label, filter(fcb_data, label != 'None')$topic)
-  table(filter(fcb_data, label == 'None')$label, filter(fcb_data, label == 'None')$topic)
-  }
+  
+  labeled_breakdown <- table(filter(fcb_data, label != 'None')$label, filter(fcb_data, label != 'None')$topic)
+  labeled_breakdown <- as_tibble(labeled_breakdown) %>% 
+    mutate(rank = dense_rank(-n)) %>% 
+    arrange(Var1, desc(n))
+  
+  max_ranks <- labeled_breakdown %>% 
+    group_by(Var1) %>% 
+    summarise(distinct_ranks = min(rank)
+              ,number_of_lines = sum(n))
+  
+  max_ranks <- max_ranks %>% 
+    left_join(labeled_breakdown, by = c('Var1' = 'Var1', 'distinct_ranks' = 'rank')) 
+  
+  max_ranks <- max_ranks %>% mutate(perc_in_top_group = n / number_of_lines) %>% 
+    arrange(desc(perc_in_top_group))
+  
+  none_breakdown <- table(filter(fcb_data, label == 'None')$label, filter(fcb_data, label == 'None')$topic)
+  none_breakdown <- as_tibble(none_breakdown) %>% arrange(Var1, desc(n))
+}
+
+
 # write_csv(arrange(fcb_data, topic), '~/Desktop/fcb_data_withTopics.csv')
 
 # View the probabilities of each topic
@@ -81,7 +108,7 @@ lda_word_probs <- tidy(lda_out, matrix = 'beta')
 # Displays word probabilities
 lda_top_terms <- lda_word_probs %>%
   group_by(topic) %>%
-  top_n(10, beta) %>%
+  top_n(20, beta) %>%
   ungroup() %>%
   arrange(topic, -beta)
 

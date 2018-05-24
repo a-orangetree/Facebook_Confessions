@@ -227,5 +227,15 @@ cutree(hierarchical_cluster_avg, 3)
 ############# K-Means Clustering #####################
 
 
-# Not useful?
-kmeans(summary_scaled, 4, nstart = 20)
+kmeans_function <- function(k) {
+  kmeans(summary_scaled, k, nstart=50, iter.max = 15 )$tot.withinss
+}
+
+kmeans_out <- sapply((1:15), (nrow(summary_scaled) - 1), kmeans_function)
+
+plot(1:k.max, kmeans_out
+     , type="b"
+     , pch = 19
+     , frame = FALSE
+     , xlab="Number of clusters K"
+     , ylab="Total within-clusters sum of squares")
