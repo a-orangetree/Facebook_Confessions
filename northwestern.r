@@ -1,4 +1,4 @@
 unique(us_data$university)
 
-northwestern_data <- read_csv('data/us.csv') %>% filter(university == 'Northwestern Univeristy')
-uchicago_data <- read_csv('data/us.csv') %>% filter(university == 'University of Chicago')
+northwestern_data <- us_data %>% filter(university == 'Northwestern Univeristy')
+uchicago_data <- us_data %>% filter(university == 'University of Chicago')

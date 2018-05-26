@@ -1,13 +1,18 @@
 # Facebook Confessions Forum Data
 
-#### These are forum posts. Some of which have been manually label, most of which hasn't.
+#### Anonymous posts from college students. 
 
-#### Problem: the training labels don't necessarily match their content.
+#### They have been manually label with regards to whether they concern a *taboo*.
+
+#### Note: the indication of a *taboo* is not an indication of *content*.
 
 <br>
 
 <br>
 
+## Descriptive Analysis
+
+<br>
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # Import libraries

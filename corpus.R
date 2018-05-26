@@ -2,9 +2,11 @@ library(tm)
 library(tidytext)
 library(topicmodels)
 library(ggthemes)
+library(knitr)
+library(ldatuning)
 
 
-dfCorpus2 <- VCorpus(VectorSource(fcb_data$text)) # words
+dfCorpus2 <- VCorpus(VectorSource(fcb_data$text)) 
 # inspect(dfCorpus2[1:10])
 # inspect(dfCorpus2[[2]])
 
@@ -33,67 +35,84 @@ dfCorpus2 <- tm_map(dfCorpus2, removeWords, myStopwords)
 
 
 dtm <- DocumentTermMatrix(dfCorpus2)
-inspect(dtm)
+# inspect(dtm)
 
-# Displays most frequent terms
-findFreqTerms(dtm, 500)
+# Displays terms occuring at least x times
+# findFreqTerms(dtm, 100)
 
 # Displays words associated with particular terms
-findAssocs(dtm, "tamu", 0.3)
+# findAssocs(dtm, "sex", 0.49)
+
+# Removes sparse terms
+dtm2 <- removeSparseTerms(dtm, 0.98)
+inspect(dtm2)
 
 # Removes documents with no words
-# rowTotals <- apply(dtm, 1, sum)
-# dtm2 <- dtm[rowTotals > 0,]
+rowTotals <- apply(dtm2, 1, sum)
+dtm3 <- dtm2[rowTotals > 0,]
+fcb_data2 <- fcb_data[rowTotals > 0,]
 
+dim(dtm3)
+dim(fcb_data2)
+
+# Messing around
+# test <- as.matrix(dtm2)
+# test[1,1]
 
 ################## Create LDA ########################
 
+# topic_search <- FindTopicsNumber(dtm3,
+#                             topics = seq(5, 50, 5),
+#                             metrics = c("Griffiths2004", "CaoJuan2009", "Arun2010", "Deveaud2014"),
+#                             method = "Gibbs",
+#                             control = list(seed = 77),
+#                             verbose = TRUE)
+topic_search <- read.csv('data/topic_search.csv')
+FindTopicsNumber_plot(topic_search)
 
-burnin <- 4000
-iter <- 2000
-thin <- 500
-seed <- list(2003, 5, 63, 100001, 765)
-nstart <- 5
-k <- 100
+# burnin <- 4000
+# iter <- 2000
+# thin <- 500
+# seed <- list(2003, 5, 63, 100001, 765)
+# nstart <- 5
+# k <- 100
 
 # lda_out <- LDA(dtm, k, method = 'Gibbs'
 #                , control = list(nstart = nstart, seed = seed, burnin = burnin, iter = iter, thin = thin))
 
-lda_out <- LDA(dtm, 5)
-
-posterior(lda_out)
+lda_out <- LDA(dtm3, 40)
 
 # save(lda_out, file = 'data/lda_100.object')
-lda_out <- load('data/lda_10.object')
-lda_out100 <- load('data/lda_100.object')
+# lda_out <- load('data/lda_10.object')
+# lda_out100 <- load('data/lda_100.object')
+
+# Posteriors will help with predictions
+# posterior(lda_out)
+# posterior(lda_out, select(us_data, message))
 
 # View each document's topic
 topics <- topics(lda_out)
 
-if (length(topics) == length(fcb_data$text)) { 
+
+if (length(topics) == length(fcb_data2$text)) { 
   
-  fcb_data$topic = topics 
+  fcb_data2$topic = topics
   
-  fcb_data <- fcb_data %>% group_by(label)
+  fcb_data2 <- fcb_data2 %>% group_by(label)
   
-  labeled_breakdown <- table(filter(fcb_data, label != 'None')$label, filter(fcb_data, label != 'None')$topic)
+  labeled_breakdown <- table(filter(fcb_data2, label != 'None')$label, filter(fcb_data2, label != 'None')$topic)
   labeled_breakdown <- as_tibble(labeled_breakdown) %>% 
     mutate(rank = dense_rank(-n)) %>% 
     arrange(Var1, desc(n))
   
-  max_ranks <- labeled_breakdown %>% 
-    group_by(Var1) %>% 
-    summarise(distinct_ranks = min(rank)
-              ,number_of_lines = sum(n))
+  max_ranks <- labeled_breakdown %>% group_by(Var1) %>% summarise(distinct_ranks = min(rank), number_of_lines = sum(n))
+  max_ranks <- max_ranks %>% left_join(labeled_breakdown, by = c('Var1' = 'Var1', 'distinct_ranks' = 'rank')) 
+  max_ranks <- max_ranks %>% mutate(perc_in_top_group = n / number_of_lines) %>% arrange(desc(perc_in_top_group))
+  print(max_ranks)
   
-  max_ranks <- max_ranks %>% 
-    left_join(labeled_breakdown, by = c('Var1' = 'Var1', 'distinct_ranks' = 'rank')) 
-  
-  max_ranks <- max_ranks %>% mutate(perc_in_top_group = n / number_of_lines) %>% 
-    arrange(desc(perc_in_top_group))
-  
-  none_breakdown <- table(filter(fcb_data, label == 'None')$label, filter(fcb_data, label == 'None')$topic)
+  none_breakdown <- table(filter(fcb_data2, label == 'None')$label, filter(fcb_data2, label == 'None')$topic)
   none_breakdown <- as_tibble(none_breakdown) %>% arrange(Var1, desc(n))
+  print(none_breakdown)
 }
 
 

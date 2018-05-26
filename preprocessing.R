@@ -26,7 +26,6 @@ fcb_data <- fcb_data %>%
 
 india_data <- read_csv('data/india.csv')
 us_data <- read_csv('data/us.csv')
-northwestern_data <- read_csv('data/us.csv') %>% filter(university == 'Northwestern Univeristy')
 uk_data <- read_csv('data/uk.csv')
 canada_data <- read_csv('data/canada.csv')
 
