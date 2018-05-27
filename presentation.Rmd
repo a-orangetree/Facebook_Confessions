@@ -1,18 +1,41 @@
-# Facebook Confessions Forum Data
-
-#### Anonymous posts from college students. 
-
-#### They have been manually label with regards to whether they concern a *taboo*.
-
-#### Note: the indication of a *taboo* is not an indication of *content*.
+---
+title: "Data from Facebook Confessions Forums"
+author: "Adrian Naranjo"
+---
 
 <br>
 
-<br>
-
-## Descriptive Analysis
+### **Question**: given manually labeled data, *can we predict taboos*?
 
 <br>
+
+### Manually labeled data was given to us. These labels represent taboos and include:
+
+* Academics
+* Death
+* Drugs
+* Excretions
+* Medical
+* Mental Health
+* Money / Financial
+* Race_ProtectedGroups
+* Sex
+
+#### **Note**: a taboo is not a category. It refers to the **manner** in which a category is presented.
+
+<br>
+
+#### This would NOT have a label: "I like sex." 
+#### This WOULD have a label: "“I'm a terrible Christian. I can't stop thinking about sex."
+
+<br>
+
+## A Description of our Labels...
+
+
+<br>
+
+### Line, word counts
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # Import libraries
@@ -23,6 +46,7 @@ library(knitr)
 library(ggthemes)
 library(tidytext)
 library(topicmodels)
+library(ldatuning)
 ```
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
@@ -66,6 +90,10 @@ summary <- read_csv('data/label_summary.csv') %>%
 
 kable(summary, align=c(rep('c',times=4)))
 ```
+
+<br>
+
+#### **Note**: a label of "None" means the text did not exhibit a taboo. 
 
 <br>
 
@@ -239,34 +267,29 @@ top_500_words %>% rename(None = None_words
 
 <br>
 
-## Are any of our categories more Narcissistic or Altruistic?
-
-<br>
-
-#### I-words = i, i'd, i've, i'll, i'm
-
-#### U-words = you, u, ur, your, youre, you're, you'll, you'd
-
-<br>
+### Trying to measure narcissism...
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
 graph_summary <- summary %>% gather()
 labels <- filter(graph_summary, key == 'label')$value
 
-graph_summary2 <- graph_summary %>% 
+graph_summary2 <- graph_summary %>%
   mutate(value = round(as.double(value), 4)
-         ,label = rep(labels, nrow(.)/9)) %>% 
+         ,label = rep(labels, nrow(.)/9)) %>%
   filter(key %in% c('i_words', 'u_words'))
 
 # Plot3
-ggplot(graph_summary2, aes(x = key, y = value)) +
-  geom_bar(stat = 'identity', aes(fill = key)) +
-  coord_flip() +
-  facet_wrap(~ label) +
-  ggtitle("Number of 'I-words' vs Number of 'U-words'") +
-  theme_economist_white()
+# ggplot(graph_summary2, aes(x = key, y = value)) +
+#   geom_bar(stat = 'identity', aes(fill = key)) +
+#   coord_flip() +
+#   facet_wrap(~ label) +
+#   ggtitle("Number of 'I-words' vs Number of 'U-words'") +
+#   theme_economist_white()
 ```
 
+**Note**:
+*I-words = I, I'd, I've, I'll, I'm
+*U-words = You, Your, You're, Youre, You'll, You'd, U, Ur
 
 <br>
 
@@ -494,43 +517,7 @@ summary <- summary %>%
 
 <br>
 
-## Hierarchical Clustering
-
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-## Clustering 
-summary_scaled <- scale(summary[-1])
-
-# Complete Linkage
-hierarchical_cluster_complete <- hclust(dist(summary_scaled), method = 'complete')
-# plot(hierarchical_cluster_complete, main = "Complete Linkage", xlab = "" , sub = "")
-```
-
-<br>
-
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-s1 <- summary
-s1$cut_complete <- cutree(hierarchical_cluster_complete, 3)
-kable(select(s1, label, cut_complete), align=c(rep('c',times=2)))
-```
-
-<br>
-
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-# Average Linkage
-hierarchical_cluster_avg <- hclust(dist(summary_scaled), method = 'average')
-# plot(hierarchical_cluster_avg, main = "Average Linkage", xlab = "" , sub = "")
-```
-
-<br>
-
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-s1$cut_average <- cutree(hierarchical_cluster_avg, 3)
-kable(select(s1, label, cut_average), align=c(rep('c',times=4)))
-```
-
-<br>
-
-## Sentiment Analysis
+### Sentiments...
 
 <br>
 
@@ -546,12 +533,12 @@ graph_summary1 <- graph_summary %>%
 
 
 # Plot1
-ggplot(graph_summary1, aes(x = label, y = value)) +
-  geom_bar(stat = 'identity', fill = 'black') +
-  coord_flip() +
-  facet_wrap(~ key) +
-  ggtitle("Category by Sentiment") +
-  theme_economist()
+# ggplot(graph_summary1, aes(x = label, y = value)) +
+#   geom_bar(stat = 'identity', fill = 'black') +
+#   coord_flip() +
+#   facet_wrap(~ key) +
+#   ggtitle("Category by Sentiment") +
+#   theme_economist()
 ```
 
 <br>
@@ -597,7 +584,20 @@ dfCorpus2 <- tm_map(dfCorpus2, removeWords, myStopwords)
 
 ################# Create Document-Term-Matrix #####################
 dtm <- DocumentTermMatrix(dfCorpus2)
+dtm2 <- removeSparseTerms(dtm, 0.985)
 
+rowTotals <- apply(dtm2, 1, sum)
+dtm3 <- dtm2[rowTotals > 0,]
+fcb_data2 <- fcb_data[rowTotals > 0,]
+```
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 13, fig.width = 13, fig.align = "center"}
+topic_search <- read.csv('data/topic_search.csv')
+FindTopicsNumber_plot(topic_search)
+```
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 11, fig.width = 11, fig.align = "center"}
 ################## Create LDA ########################
 
 
@@ -606,7 +606,7 @@ iter <- 2000
 thin <- 500
 seed <- list(2003, 5, 63, 100001, 765)
 nstart <- 5
-k <- 15
+k <- 35
 
 lda_out <- LDA(dtm, k, method = 'Gibbs'
                , control = list(nstart = nstart, seed = seed, burnin = burnin, iter = iter, thin = thin))
