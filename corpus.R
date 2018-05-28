@@ -36,6 +36,7 @@ dfCorpus2 <- tm_map(dfCorpus2, removeWords, myStopwords)
 
 dtm <- DocumentTermMatrix(dfCorpus2)
 # inspect(dtm)
+# tidy(dtm)
 
 # Displays terms occuring at least x times
 # findFreqTerms(dtm, 100)
@@ -44,20 +45,150 @@ dtm <- DocumentTermMatrix(dfCorpus2)
 # findAssocs(dtm, "sex", 0.49)
 
 # Removes sparse terms
-dtm2 <- removeSparseTerms(dtm, 0.989)
-inspect(dtm2)
+dtm2 <- removeSparseTerms(dtm, 0.99)
+# inspect(dtm2)
 
 # Removes documents with no words
 rowTotals <- apply(dtm2, 1, sum)
 dtm3 <- dtm2[rowTotals > 0,]
 fcb_data2 <- fcb_data[rowTotals > 0,]
 
-dim(dtm3)
-dim(fcb_data2)
 
-# Messing around
-# test <- as.matrix(dtm2)
-# test[1,1]
+############## Sentiment Analysis (run sentiment_analysis.R first!) #################
+
+
+tidy_dtm <- tidy(dtm3)
+tidy_dtm <- left_join(tidy_dtm, bing_dict, by = c('term' = 'word'))
+tidy_dtm <- left_join(tidy_dtm, afinn_dict, by = c('term' = 'word'))
+tidy_dtm <- left_join(tidy_dtm, nrc_dict, by = c('term' = 'word'))
+
+tidy_dtm_orig <- tidy_dtm
+
+tidy_dtm <- tidy_dtm %>% 
+  mutate(nrc = ifelse(is.na(nrc), 'neutral', nrc)
+         ,afinn = ifelse(is.na(afinn), 0, afinn)
+         ,bing = ifelse(is.na(bing), 99, bing))
+
+fcb_data_for_dtm <- fcb_data %>% 
+  mutate(id = as.character(id)) %>% 
+  select(id, label, total_words, num_stopwords, u_word_count, i_word_count)
+
+tidy_dtm <- left_join(tidy_dtm, fcb_data_for_dtm, by = c('document' = 'id'))
+
+tidy_dtm_nrc <- tidy_dtm %>% 
+  select(document, nrc) %>% 
+  group_by(document, nrc) %>% 
+  summarise('count' = n()) %>% 
+  spread(nrc, count, fill = 0)
+
+tidy_dtm_bing <- tidy_dtm %>% 
+  filter(bing != 99) %>% 
+  group_by(document) %>% 
+  summarise(avg_bing = mean(bing))
+
+tidy_dtm_afinn <- tidy_dtm %>% 
+  filter(afinn != 0) %>% 
+  group_by(document) %>% 
+  summarise(avg_afinn = mean(afinn))
+
+tidy_dtm_grouped <- tidy_dtm %>% 
+  select(document, label, total_words, num_stopwords, u_word_count, i_word_count) %>% 
+  unique()
+
+tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_nrc, by = c('document' = 'document'))
+tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_afinn, by = c('document' = 'document'))
+tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_bing, by = c('document' = 'document'))
+
+
+######## Hierarchical Clustering ############
+
+
+data_scaled <- scale(select(tidy_dtm_grouped, -document, -label))
+
+# Complete Linkage
+hierarchical_cluster_complete <- hclust(dist(data_scaled), method = 'complete')
+plot(hierarchical_cluster_complete, main = "Complete Linkage", xlab = "" , sub = "")
+
+cutree(hierarchical_cluster_complete, 3)
+
+# Average Linkage
+hierarchical_cluster_avg <- hclust(dist(data_scaled), method = 'average')
+plot(hierarchical_cluster_avg, main = "Average Linkage", xlab = "" , sub = "")
+
+cutree(hierarchical_cluster_avg, 3)
+
+
+############# K-Means Clustering #####################
+
+
+data_scaled <- scale(select(drop_na(tidy_dtm_grouped), -document, -label))
+
+k_max <- nrow(drop_na(tidy_dtm_grouped)) - 1
+
+kmeans_out <- sapply(1:k_max, 
+                     function(k){kmeans(data_scaled, k, nstart = 50, iter.max = k_max)$tot.withinss})
+
+plot(1:k_max, kmeans_out
+     , type = "b"
+     , pch = 19
+     , frame = FALSE
+     , xlab="Number of clusters K"
+     , ylab="Total within-clusters sum of squares")
+
+
+############## Plot Sentiment Analysis #################
+
+tidy_dtm <- tidy_dtm_orig
+
+tidy_dtm %>%
+  group_by(label) %>%
+  count(term, sort = TRUE) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(label = factor(label, levels = unique(label)),
+         text_order = nrow(.):1) %>%
+  ggplot(aes(reorder(term, text_order), n, fill = label)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ label, scales = "free_y") +
+  labs(x = "NULL", y = "Frequency") +
+  coord_flip() +
+  theme(legend.position="none")
+
+# calculate percent of word use across all labels
+total_pct <- tidy_dtm %>%
+  count(term) %>%
+  transmute(term, all_words = n / sum(n))
+
+# calculate percent of word use within each label
+frequency <- tidy_dtm %>%
+  count(label, term) %>%
+  mutate(label_words = n / sum(n)) %>%
+  left_join(total_pct) %>%
+  arrange(desc(label_words)) %>%
+  ungroup()
+
+# Words that are close to the line in these plots have similar frequencies across all the novels. 
+# Words that are far from the line are words that are found more in one set of texts than another. 
+# Furthermore, words standing out above the line are common across the series but not within that book,
+# whereas words below the line are common in that particular book but not across the series.
+ggplot(frequency, aes(x = label_words, y = all_words, color = abs(all_words - label_words))) +
+  geom_abline(color = "gray40", lty = 2) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
+  geom_text(aes(label = term), check_overlap = TRUE, vjust = 1.5) +
+  scale_x_log10(labels = scales::percent_format()) +
+  scale_y_log10(labels = scales::percent_format()) +
+  scale_color_gradient(limits = c(0, 0.001), low = "darkslategray4", high = "gray75") +
+  facet_wrap(~ label, ncol = 2) +
+  theme(legend.position="none") +
+  labs(y = "Taboo Labels", x = NULL)
+
+# Correlation of words between labels
+frequency %>%
+  group_by(label) %>%
+  summarize(correlation = cor(label_words, all_words),
+            p_value = as.double(cor.test(label_words, all_words)$p.value)) %>% 
+  kable()
+
 
 ################## Create LDA ########################
 

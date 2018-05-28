@@ -5,7 +5,10 @@ author: "Adrian Naranjo"
 
 <br>
 
-### **Question**: given manually labeled data, *can we predict taboos*?
+## Introduction
+
+Confession pages are pages on social networking websites which are used at schools and universities for students to anonymously post their thoughts, questions, secrets to their respective communities. We have Confessions data from Facebook which has been labeled by taboo.
+
 
 <br>
 

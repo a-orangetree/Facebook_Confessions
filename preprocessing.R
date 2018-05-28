@@ -8,12 +8,13 @@ library(tm)
 
 fcb_data <- read_csv('data/FCB.csv') 
 
-fcb_data <- fcb_data %>%
-  filter(!text == 'NA' & !is.na(text)) %>% 
-  select(-X1) %>% 
-  mutate(label = str_replace(label, 'Mental Health', 'Mental_Health')
-         ,label = str_replace(label, 'Money/Financial', 'Money_Financial')
-         ,label = str_replace(label, 'Race/Protected Groups', 'Race_ProtectedGroups'))
+# fcb_data <- fcb_data %>%
+#   filter(!text == 'NA' & !is.na(text)) %>%
+#   select(-X1) %>%
+#   mutate(id = as.character(seq(1, nrow(.), 1))
+#          ,label = str_replace(label, 'Mental Health', 'Mental_Health')
+#          ,label = str_replace(label, 'Money/Financial', 'Money_Financial')
+#          ,label = str_replace(label, 'Race/Protected Groups', 'Race_ProtectedGroups'))
 
 (number_lines <- count(fcb_data, label) %>% 
     rename('num_lines' = 'n'))
@@ -24,10 +25,10 @@ fcb_data <- fcb_data %>%
 ######## Import Un-Labeled Data ###############
 
 
-india_data <- read_csv('data/india.csv')
-us_data <- read_csv('data/us.csv')
-uk_data <- read_csv('data/uk.csv')
-canada_data <- read_csv('data/canada.csv')
+# india_data <- read_csv('data/india.csv')
+# us_data <- read_csv('data/us.csv')
+# uk_data <- read_csv('data/uk.csv')
+# canada_data <- read_csv('data/canada.csv')
 
 
 ####### Builds a Bag of Words ################
@@ -53,7 +54,7 @@ non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
 # Medical <- tibble()
 # Drugs <- tibble()
 # Race_ProtectedGroups <- tibble()
-# # Excretions <- tibble()
+# Excretions <- tibble()
 # Academics <- tibble()
 # Death <- tibble()
 # 
@@ -64,7 +65,7 @@ non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
 # Medical_clean <- tibble()
 # Drugs_clean <- tibble()
 # Race_ProtectedGroups_clean <- tibble()
-# # Excretions_clean <- tibble()
+# Excretions_clean <- tibble()
 # Academics_clean <- tibble()
 # Death_clean <- tibble()
 # 
@@ -75,11 +76,13 @@ non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
 # Medical_total_len <- 0
 # Drugs_total_len <- 0
 # Race_total_len <- 0
-# # Excretions_total_len <- 0
+# Excretions_total_len <- 0
 # Academics_total_len <- 0
 # Death_total_len <- 0
 # 
 # ui_words <- c('you', "u", "ur", "your", "youre", "you're", "you'll", "you'd",'i', "i've", "i'd", "i'm", "i'll")
+# u_words <- c('you', "u", "ur", "your", "youre", "you're", "you'll", "you'd")
+# i_words <- c('i', "i've", "i'd", "i'm", "i'll")
 # custom_stopwords <- stopwords('english')[!stopwords('english') %in% ui_words]
 # custom_stopwords <- c(custom_stopwords, 'like', 'just', 'can', 'will')
 # 
@@ -91,22 +94,40 @@ non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
 #                  ,'moreov', 'though', 'found', 'abl', 'enough', 'far', 'earli', 'away', 'achiev', 'draw', 'last'
 #                  ,'brief', 'bit', 'entir', 'lot', 'wish', 'what', 'just', 'that', 'let', 'dont', 'cant', 'still')
 # 
+# fcb_data$total_words <- 0
+# fcb_data$num_stopwords <- 0
+# fcb_data$u_word_count <- 0
+# fcb_data$i_word_count <- 0
 # 
 # for (line in seq(1:length(fcb_data$text))) {
 # 
-#   tokens <- tibble(t = tokenize_words(fcb_data$text)[[line]]) %>%
-#     filter(!t %in% custom_stopwords) #%>%
+#   tokens <- tibble(t = tokenize_words(fcb_data$text)[[line]])
+#   len1 <- dim(tokens)[1]
+#   tokens <- tokens %>% filter(!t %in% custom_stopwords) #%>%
 #     # mutate(t = stemDocument(t))
-#   
-#   clean_tokens <- tokens %>% 
-#     filter(!t %in% stopwords('english')) %>% 
+# 
+#   u_word_count <- dim(tokens %>% filter(t %in% u_words))[1]
+#   fcb_data$u_word_count[line] <- u_word_count
+# 
+#   i_word_count <- dim(tokens %>% filter(t %in% i_words))[1]
+#   fcb_data$i_word_count[line] <- i_word_count
+# 
+#   clean_tokens <- tokens %>%
+#     filter(!t %in% stopwords('english')) %>%
 #     filter(!t %in% myStopwords)
+#   len2 <- dim(clean_tokens)[1]
+# 
+#   num_stopwords <- len1 - len2
+#   total_words <- len1
+# 
+#   fcb_data$total_words[line] <- total_words
+#   fcb_data$num_stopwords[line] <- num_stopwords
 # 
 #   label <- fcb_data$label[line]
 # 
-#   if (label == 'None' | label == 'Excretions') {
+#   if (label == 'None') {
 #     None <- c(None, tokens)
-#     None_clean <- c(None_clean, clean_tokens) 
+#     None_clean <- c(None_clean, clean_tokens)
 #     None_total_len <- None_total_len + length(tokens$t)
 #     }
 #   else if (label == 'Sex') {
@@ -139,10 +160,11 @@ non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
 #     Race_ProtectedGroups_clean <- c(Race_ProtectedGroups_clean, clean_tokens)
 #     Race_total_len <- Race_total_len + length(tokens$t)
 #     }
-#   # else if (label == 'Excretions') {
-#   #   Excretions <- c(Excretions, tokens)
-#   #   Excretions_total_len <- Excretions_total_len + length(tokens$t)
-#   #   }
+#   else if (label == 'Excretions') {
+#     Excretions <- c(Excretions, tokens)
+#     Excretions_clean <- c(Excretions_clean, clean_tokens)
+#     Excretions_total_len <- Excretions_total_len + length(tokens$t)
+#     }
 #   else if (label == 'Academics') {
 #     Academics <- c(Academics, tokens)
 #     Academics_clean <- c(Academics_clean, clean_tokens)
@@ -163,7 +185,7 @@ non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
 #           ,tibble(Medical = Medical_total_len)
 #           ,tibble(Drugs = Drugs_total_len)
 #           ,tibble(Race_ProtectedGroups = Race_total_len)
-#           # ,tibble(Excretions = Excretions_total_len)
+#           ,tibble(Excretions = Excretions_total_len)
 #           ,tibble(Academics = Academics_total_len)
 #           ,tibble(Death = Death_total_len)) %>%
 #   gather(key = 'label', value = 'num_words') %>%
@@ -183,7 +205,7 @@ non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
 # Money_Financial <- tibble(unlist(Money_Financial))
 # Drugs <- tibble(unlist(Drugs))
 # Race_ProtectedGroups <- tibble(unlist(Race_ProtectedGroups))
-# # Excretions <- tibble(unlist(Excretions))
+# Excretions <- tibble(unlist(Excretions))
 # Academics <- tibble(unlist(Academics))
 # Death <- tibble(unlist(Death))
 # 
@@ -195,9 +217,12 @@ non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
 # Money_Financial_clean <- tibble(unlist(Money_Financial_clean))
 # Drugs_clean <- tibble(unlist(Drugs_clean))
 # Race_ProtectedGroups_clean <- tibble(unlist(Race_ProtectedGroups_clean))
-# # Excretions_clean <- tibble(unlist(Excretions_clean))
+# Excretions_clean <- tibble(unlist(Excretions_clean))
 # Academics_clean <- tibble(unlist(Academics_clean))
 # Death_clean <- tibble(unlist(Death_clean))
+# 
+# 
+# write_csv(fcb_data, 'data/FCB.csv')
 # 
 # 
 # write_csv(None, 'data/None_words.csv')
@@ -207,7 +232,7 @@ non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
 # write_csv(Medical, 'data/Medical_words.csv')
 # write_csv(Drugs, 'data/Drugs_words.csv')
 # write_csv(Race_ProtectedGroups, 'data/Race_words.csv')
-# # write_csv(Excretions, 'data/Excretions_words.csv')
+# write_csv(Excretions, 'data/Excretions_words.csv')
 # write_csv(Academics, 'data/Academics_words.csv')
 # write_csv(Death, 'data/Death_words.csv')
 # 
@@ -219,7 +244,7 @@ non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
 # write_csv(Medical_clean, 'data/Medical_words_clean.csv')
 # write_csv(Drugs_clean, 'data/Drugs_words_clean.csv')
 # write_csv(Race_ProtectedGroups_clean, 'data/Race_words_clean.csv')
-# # write_csv(Excretions_clean, 'data/Excretions_words_clean.csv')
+# write_csv(Excretions_clean, 'data/Excretions_words_clean.csv')
 # write_csv(Academics_clean, 'data/Academics_words_clean.csv')
 # write_csv(Death_clean, 'data/Death_words_clean.csv')
 
@@ -231,7 +256,7 @@ Money_Financial <- read_csv('data/Money_words.csv', col_names = F)
 Medical <- read_csv('data/Medical_words.csv', col_names = F)
 Drugs <- read_csv('data/Drugs_words.csv', col_names = F)
 Race_ProtectedGroups <- read_csv('data/Race_words.csv', col_names = F)
-# Excretions <- read_csv('data/Excretions_words.csv', col_names = F)
+Excretions <- read_csv('data/Excretions_words.csv', col_names = F)
 Academics <- read_csv('data/Academics_words.csv', col_names = F)
 Death <- read_csv('data/Death_words.csv', col_names = F)
 
@@ -243,7 +268,7 @@ Money_Financial_clean <- read_csv('data/Money_words_clean.csv', col_names = F)
 Medical_clean <- read_csv('data/Medical_words_clean.csv', col_names = F)
 Drugs_clean <- read_csv('data/Drugs_words_clean.csv', col_names = F)
 Race_ProtectedGroups_clean <- read_csv('data/Race_words_clean.csv', col_names = F)
-# Excretions_clean <- read_csv('data/Excretions_words_clean.csv', col_names = F)
+Excretions_clean <- read_csv('data/Excretions_words_clean.csv', col_names = F)
 Academics_clean <- read_csv('data/Academics_words_clean.csv', col_names = F)
 Death_clean <- read_csv('data/Death_words_clean.csv', col_names = F)
 
