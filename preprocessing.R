@@ -22,15 +22,6 @@ fcb_data <- read_csv('data/FCB.csv')
 # fcb_data %>% filter(str_detect(text, 'TAMU'))
 
 
-######## Import Un-Labeled Data ###############
-
-
-# india_data <- read_csv('data/india.csv')
-# us_data <- read_csv('data/us.csv')
-# uk_data <- read_csv('data/uk.csv')
-# canada_data <- read_csv('data/canada.csv')
-
-
 ####### Builds a Bag of Words ################
 
 

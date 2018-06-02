@@ -121,12 +121,13 @@ cutree(hierarchical_cluster_avg, 3)
 ############# K-Means Clustering #####################
 
 
-data_scaled <- scale(select(drop_na(tidy_dtm_grouped), -document, -label))
+data_scaled <- scale(select(drop_na(tidy_dtm_grouped), -document, -label)) %>% as.matrix()
 
-k_max <- nrow(drop_na(tidy_dtm_grouped)) - 1
+# k_max <- nrow(drop_na(tidy_dtm_grouped)) - 1
+k_max <- 40
 
 kmeans_out <- sapply(1:k_max, 
-                     function(k){kmeans(data_scaled, k, nstart = 50, iter.max = k_max)$tot.withinss})
+                     function(k){kmeans(data_scaled, k, nstart = 20, iter.max = k_max)$tot.withinss})
 
 plot(1:k_max, kmeans_out
      , type = "b"

@@ -1,15 +1,16 @@
+library(tokenizers)
 library(tm)
+library(lubridate)
 library(tidytext)
 library(topicmodels)
 
-fcb_data <- read_csv('data/FCB.csv') 
+
+############### Create Corpus ####################
 
 
-dfCorpus2 <- VCorpus(VectorSource(fcb_data$text)) 
+dfCorpus <- VCorpus(VectorSource(combined_data$message))
 
-############ Pre-process #######################
-
-dfCorpus2 <- tm_map(dfCorpus2, stripWhitespace)
+dfCorpus2 <- tm_map(dfCorpus, stripWhitespace)
 dfCorpus2 <- tm_map(dfCorpus2, removePunctuation)
 dfCorpus2 <- tm_map(dfCorpus2, removeNumbers)
 dfCorpus2 <- tm_map(dfCorpus2, content_transformer(tolower))
@@ -26,19 +27,14 @@ myStopwords <- c('can', 'say', 'one', 'way', 'use', 'also', 'howev', 'tell', 'wi
 
 dfCorpus2 <- tm_map(dfCorpus2, removeWords, myStopwords)
 
-
-################# Create Document-Term-Matrix #####################
-
-
 dtm <- DocumentTermMatrix(dfCorpus2)
 dtm2 <- removeSparseTerms(dtm, 0.99)
 
 rowTotals <- apply(dtm2, 1, sum)
 dtm3 <- dtm2[rowTotals > 0,]
-fcb_data2 <- fcb_data[rowTotals > 0,]
+combined_data2 <- combined_data[rowTotals > 0,]
 
-
-############## Sentiment Analysis (run sentiment_analysis.R first!) #################
+########### Import Sentiment Dictionaries ################
 
 
 afinn_dict <- get_sentiments("afinn") %>% rename('afinn' = 'score')
@@ -50,6 +46,8 @@ bing_dict <- get_sentiments("bing") %>%
 
 nrc_dict <- get_sentiments("nrc") %>% rename('nrc' = 'sentiment')
 
+
+########## Sentiment Analysis ##################
 
 tidy_dtm <- tidy(dtm3)
 tidy_dtm <- left_join(tidy_dtm, bing_dict, by = c('term' = 'word'))
@@ -63,11 +61,7 @@ tidy_dtm <- tidy_dtm %>%
          ,afinn = ifelse(is.na(afinn), 0, afinn)
          ,bing = ifelse(is.na(bing), 99, bing))
 
-fcb_data_for_dtm <- fcb_data %>% 
-  mutate(id = as.character(id)) %>% 
-  select(id, label, total_words, num_stopwords, u_word_count, i_word_count)
-
-tidy_dtm <- left_join(tidy_dtm, fcb_data_for_dtm, by = c('document' = 'id'))
+tidy_dtm <- left_join(tidy_dtm, select(combined_data, -message), by = c('document' = 'id'))
 
 tidy_dtm_nrc <- tidy_dtm %>% 
   select(document, nrc) %>% 
@@ -86,28 +80,10 @@ tidy_dtm_afinn <- tidy_dtm %>%
   summarise(avg_afinn = mean(afinn))
 
 tidy_dtm_grouped <- tidy_dtm %>% 
-  select(document, label, total_words, num_stopwords, u_word_count, i_word_count) %>% 
+  select(document, university, num_words, u_words, i_words) %>% 
   unique()
 
 tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_nrc, by = c('document' = 'document'))
 tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_afinn, by = c('document' = 'document'))
 tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_bing, by = c('document' = 'document'))
 
-
-############# K-Means Clustering #####################
-
-
-data_scaled <- scale(select(drop_na(tidy_dtm_grouped), -document, -label)) %>% as.matrix()
-
-# k_max <- nrow(drop_na(tidy_dtm_grouped)) - 1
-k_max <- 40
-
-kmeans_out <- sapply(1:k_max, 
-                     function(k){kmeans(data_scaled, k, nstart = 20, iter.max = k_max)$tot.withinss})
-
-plot(1:k_max, kmeans_out
-     , type = "b"
-     , pch = 19
-     , frame = FALSE
-     , xlab="Number of clusters K"
-     , ylab="Total within-clusters sum of squares")
