@@ -1,6 +1,5 @@
 library(tokenizers)
 library(tm)
-library(lubridate)
 library(tidytext)
 library(topicmodels)
 
@@ -49,6 +48,7 @@ nrc_dict <- get_sentiments("nrc") %>% rename('nrc' = 'sentiment')
 
 ########## Sentiment Analysis ##################
 
+
 tidy_dtm <- tidy(dtm3)
 tidy_dtm <- left_join(tidy_dtm, bing_dict, by = c('term' = 'word'))
 tidy_dtm <- left_join(tidy_dtm, afinn_dict, by = c('term' = 'word'))
@@ -80,7 +80,7 @@ tidy_dtm_afinn <- tidy_dtm %>%
   summarise(avg_afinn = mean(afinn))
 
 tidy_dtm_grouped <- tidy_dtm %>% 
-  select(document, university, num_words, u_words, i_words) %>% 
+  select(document, num_likes, num_comments, university, country, year, month, day, hour, num_words, i_count, u_count) %>% 
   unique()
 
 tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_nrc, by = c('document' = 'document'))

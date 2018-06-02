@@ -1,4 +1,5 @@
 library(tidyverse)
+library(lubridate)
 
 
 
@@ -28,8 +29,8 @@ combined_data <- bind_rows(us_data, uk_data, canada_data) %>%
          ,day = day(time)
          ,hour = hour(time)
          ,message = str_to_lower(message)
-         ,i_count = str_count(combined_data$message, i_words) 
-         ,u_count = str_count(combined_data$message, u_words)
+         ,i_count = str_count(message, i_words) 
+         ,u_count = str_count(message, u_words)
          ,num_words = lengths(gregexpr("\\W+", message))
          ,num_characters = str_length(message)
          ,characters_per_word = num_characters / num_words) %>% 
