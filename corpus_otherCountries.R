@@ -8,6 +8,7 @@ library(topicmodels)
 
 
 dfCorpus <- VCorpus(VectorSource(combined_data$message))
+# inspect(dfCorpus[[1]])
 
 dfCorpus2 <- tm_map(dfCorpus, stripWhitespace)
 dfCorpus2 <- tm_map(dfCorpus2, removePunctuation)
@@ -25,13 +26,28 @@ myStopwords <- c('can', 'say', 'one', 'way', 'use', 'also', 'howev', 'tell', 'wi
                  , 'ill', 'ive', 'yall')
 
 dfCorpus2 <- tm_map(dfCorpus2, removeWords, myStopwords)
+# inspect(dfCorpus2[[1]])
 
 dtm <- DocumentTermMatrix(dfCorpus2)
+# inspect(dtm)
+
 dtm2 <- removeSparseTerms(dtm, 0.99)
+# inspect(dtm2)
 
 rowTotals <- apply(dtm2, 1, sum)
 dtm3 <- dtm2[rowTotals > 0,]
-combined_data2 <- combined_data[rowTotals > 0,]
+# combined_data2 <- combined_data[rowTotals > 0,]
+
+
+########## Most common words #########################
+
+tidy(dtm3) %>% 
+  group_by(term) %>% 
+  summarise(count = sum(count)) %>% 
+  mutate(perc = round(count / dim(tidy(dtm3))[1], 4)) %>% 
+  arrange(desc(count)) %>% 
+  head(10) %>% 
+  kable()
 
 ########### Import Sentiment Dictionaries ################
 
@@ -54,12 +70,11 @@ tidy_dtm <- left_join(tidy_dtm, bing_dict, by = c('term' = 'word'))
 tidy_dtm <- left_join(tidy_dtm, afinn_dict, by = c('term' = 'word'))
 tidy_dtm <- left_join(tidy_dtm, nrc_dict, by = c('term' = 'word'))
 
-tidy_dtm_orig <- tidy_dtm
-
 tidy_dtm <- tidy_dtm %>% 
   mutate(nrc = ifelse(is.na(nrc), 'neutral', nrc)
          ,afinn = ifelse(is.na(afinn), 0, afinn)
-         ,bing = ifelse(is.na(bing), 99, bing))
+         ,bing = ifelse(is.na(bing), 99, bing)
+         ,document = as.integer(document))
 
 tidy_dtm <- left_join(tidy_dtm, select(combined_data, -message), by = c('document' = 'id'))
 
@@ -79,6 +94,7 @@ tidy_dtm_afinn <- tidy_dtm %>%
   group_by(document) %>% 
   summarise(avg_afinn = mean(afinn))
 
+
 tidy_dtm_grouped <- tidy_dtm %>% 
   select(document, num_likes, num_comments, university, country, year, month, day, hour, num_words, i_count, u_count) %>% 
   unique()
@@ -86,4 +102,36 @@ tidy_dtm_grouped <- tidy_dtm %>%
 tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_nrc, by = c('document' = 'document'))
 tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_afinn, by = c('document' = 'document'))
 tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_bing, by = c('document' = 'document'))
+
+stop()
+##############
+
+graph_summary3 <- tidy_dtm_grouped %>% 
+  select(-num_likes, -num_comments, -country, -i_count, -u_count, -year, -month, -day,
+           -num_words, -avg_afinn, -avg_bing, -document, -hour) %>% 
+  group_by(university) %>% 
+  summarise(anger = log(mean(anger) + 1)
+            ,anticipation = log(mean(anticipation) + 1)
+            ,disgust = log(mean(disgust) + 1)
+            ,fear = log(mean(fear) + 1)
+            ,joy = log(mean(joy) + 1)
+            ,negative = log(mean(negative) + 1)
+            ,positive = log(mean(positive) + 1)
+            ,sadness = log(mean(sadness) + 1)
+            ,surprise = log(mean(surprise) + 1)
+            ,trust = log(mean(trust) + 1)) 
+
+graph_summary3 <- graph_summary3 %>% gather()
+universities <- filter(graph_summary3, key == 'university')$value
+
+graph_summary4 <- graph_summary3 %>% 
+  mutate(university = rep(universities, nrow(.)/length(universities))) %>% 
+  filter(!key == 'university')
+
+ggplot(graph_summary4, aes(x = university, y = value)) +
+  geom_bar(stat = 'identity', fill = 'black') +
+  coord_flip() +
+  facet_wrap(~ key) +
+  ggtitle("Category by Sentiment") +
+  theme_economist()
 

@@ -59,7 +59,7 @@ all_tokens <- read_csv('data/all_tokens.csv')
 
 fcb_data <- fcb_data %>%
   filter(!text == 'NA' & !is.na(text)) %>% 
-  select(-X1) %>% 
+  # select(-X1) %>% 
   mutate(label = str_replace(label, 'Mental Health', 'Mental_Health')
          ,label = str_replace(label, 'Money/Financial', 'Money_Financial')
          ,label = str_replace(label, 'Race/Protected Groups', 'Race_ProtectedGroups'))
@@ -73,7 +73,7 @@ Money_Financial <- read_csv('data/Money_words.csv', col_names = F)
 Medical <- read_csv('data/Medical_words.csv', col_names = F)
 Drugs <- read_csv('data/Drugs_words.csv', col_names = F)
 Race_ProtectedGroups <- read_csv('data/Race_words.csv', col_names = F)
-# Excretions <- read_csv('data/Excretions_words.csv', col_names = F)
+Excretions <- read_csv('data/Excretions_words.csv', col_names = F)
 Academics <- read_csv('data/Academics_words.csv', col_names = F)
 Death <- read_csv('data/Death_words.csv', col_names = F)
 
@@ -84,7 +84,7 @@ Money_Financial_clean <- read_csv('data/Money_words_clean.csv', col_names = F)
 Medical_clean <- read_csv('data/Medical_words_clean.csv', col_names = F)
 Drugs_clean <- read_csv('data/Drugs_words_clean.csv', col_names = F)
 Race_ProtectedGroups_clean <- read_csv('data/Race_words_clean.csv', col_names = F)
-# Excretions_clean <- read_csv('data/Excretions_words_clean.csv', col_names = F)
+Excretions_clean <- read_csv('data/Excretions_words_clean.csv', col_names = F)
 Academics_clean <- read_csv('data/Academics_words_clean.csv', col_names = F)
 Death_clean <- read_csv('data/Death_words_clean.csv', col_names = F)
 
@@ -102,6 +102,7 @@ kable(summary, align=c(rep('c',times=4)))
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 ######## Create Word Counts for EACH Label #################
+print('b')
 word_count <- tibble(words = names(table(all_tokens)), count = table(all_tokens)) %>% 
   mutate(all_perc_total = round(count / dim(.)[1], 4)) %>% 
   filter(!words %in% stopwords('english')) %>%
@@ -135,9 +136,9 @@ Race_ProtectedGroups_clean <- tibble(Race_words = names(table(Race_ProtectedGrou
   mutate(Race_perc_total = round(count / dim(.)[1], 4)) %>% 
   arrange(desc(count))
 
-# Excretions <- tibble(Excretions_words = names(table(Excretions)), count = table(Excretions)) %>% 
-#   mutate(Excretions_perc_total = round(count / dim(.)[1], 4)) %>% 
-#   arrange(desc(count))
+Excretions <- tibble(Excretions_words = names(table(Excretions)), count = table(Excretions)) %>%
+  mutate(Excretions_perc_total = round(count / dim(.)[1], 4)) %>%
+  arrange(desc(count))
 
 Academics_clean <- tibble(Academics_words = names(table(Academics_clean)), count = table(Academics_clean)) %>% 
   mutate(Academics_perc_total = round(count / dim(.)[1], 4)) %>% 
@@ -150,6 +151,7 @@ Death_clean <- tibble(Death_words = names(table(Death_clean)), count = table(Dea
 
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
+print('a')
 word_count <- tibble(words = names(table(all_tokens)), count = table(all_tokens)) %>% 
   mutate(all_perc_total = round(count / dim(.)[1], 4)) %>% 
   filter(!words %in% stopwords('english')) %>%
@@ -179,13 +181,13 @@ Drugs <- tibble(Drugs_words = names(table(Drugs)), count = table(Drugs)) %>%
   mutate(Drugs_perc_total = round(count / dim(.)[1], 4)) %>% 
   arrange(desc(count))
 
-Race_ProtectedGroups <- tibble(Race_words = names(table(Race_ProtectedGroups)), count = table(Race_ProtectedGroups)) %>% 
+Race_ProtectedGroups <- tibble(Race_words = names(table(Race_ProtectedGroups)), count = table(Race_ProtectedGroups)) %>%
   mutate(Race_perc_total = round(count / dim(.)[1], 4)) %>% 
   arrange(desc(count))
 
-# Excretions <- tibble(Excretions_words = names(table(Excretions)), count = table(Excretions)) %>% 
-#   mutate(Excretions_perc_total = round(count / dim(.)[1], 4)) %>% 
-#   arrange(desc(count))
+Excretions <- tibble(Excretions_words = names(table(Excretions)), count = table(Excretions)) %>%
+  mutate(Excretions_perc_total = round(count / dim(.)[1], 4)) %>%
+  arrange(desc(count))
 
 Academics <- tibble(Academics_words = names(table(Academics)), count = table(Academics)) %>% 
   mutate(Academics_perc_total = round(count / dim(.)[1], 4)) %>% 
@@ -207,13 +209,11 @@ Money_i <- sum(filter(Money_Financial, Money_words %in% i_words)$Money_perc_tota
 Medical_i <- sum(filter(Medical, Medical_words %in% i_words)$Medical_perc_total)
 Drugs_i <- sum(filter(Drugs, Drugs_words %in% i_words)$Drugs_perc_total)
 Race_i <- sum(filter(Race_ProtectedGroups, Race_words %in% i_words)$Race_perc_total)
-# Excretions_i <- sum(filter(Excretions, Excretions_words %in% i_words)$Excretions_perc_total)
+Excretions_i <- sum(filter(Excretions, Excretions_words %in% i_words)$Excretions_perc_total)
 Academics_i <- sum(filter(Academics, Academics_words %in% i_words)$Academics_perc_total)
 Death_i <- sum(filter(Death, Death_words %in% i_words)$Death_perc_total)
 
-summary$i_words <- c(None_i, Sex_i, Mental_i, Money_i, Medical_i, Drugs_i, Race_i
-                     # , Excretions_i                     
-                     , Academics_i, Death_i)
+summary$i_words <- c(None_i, Sex_i, Mental_i, Money_i, Medical_i, Drugs_i, Race_i, Excretions_i, Academics_i, Death_i)
 
 
 ########## You Words ########################
@@ -227,7 +227,7 @@ Money_u <- sum(filter(Money_Financial, Money_words %in% u_words)$Money_perc_tota
 Medical_u <- sum(filter(Medical, Medical_words %in% u_words)$Medical_perc_total)
 Drugs_u <- sum(filter(Drugs, Drugs_words %in% u_words)$Drugs_perc_total)
 Race_u <- sum(filter(Race_ProtectedGroups, Race_words %in% u_words)$Race_perc_total)
-# Excretions_u <- sum(filter(Excretions, Excretions_words %in% u_words)$Excretions_perc_total)
+Excretions_u <- sum(filter(Excretions, Excretions_words %in% u_words)$Excretions_perc_total)
 Academics_u <- sum(filter(Academics, Academics_words %in% u_words)$Academics_perc_total)
 Death_u <- sum(filter(Death, Death_words %in% u_words)$Death_perc_total)
 
@@ -246,7 +246,7 @@ top_500_words <- bind_cols(None_clean[1:top_words,1]
                             , Medical_clean[1:top_words,1]
                             , Drugs_clean[1:top_words,1]
                             , Race_ProtectedGroups_clean[1:top_words,1]
-                            # , Excretions[1:top_words,1]
+                            , Excretions[1:top_words,1]
                             , Academics_clean[1:top_words,1]
                             , Death_clean[1:top_words,1])
 ```

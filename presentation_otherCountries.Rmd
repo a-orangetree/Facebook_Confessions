@@ -1,13 +1,36 @@
+---
+title: "Data from Facebook Confessions Forums"
+author: "Adrian Naranjo"
+---
+
+<br>
+
+# Part 1: Introduction & Descriptive Analysis
+
+#### Confession pages are...
+
+* Social networking websites
+* Used at schools and universities 
+* Students post thoughts, questions, secrets to the community
+* Anonymous 
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# Load libraries
 library(tidyverse)
 library(lubridate)
+library(tokenizers)
+library(tm)
 library(knitr)
-library(kableExtra)
 library(ggthemes)
+library(tidytext)
+library(topicmodels)
+library(ldatuning)
+library(kableExtra)
+```
 
-
-########### Import Data ################
-
-
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# Import data
 us_data <- read_csv('data/us.csv') %>% 
   mutate(country = 'united_states')
 
@@ -23,34 +46,56 @@ u_words <- c("you\\s", "you've", "you're", "you'll", "you'd", "\\su\\s", "u've",
 i_words <- str_c(i_words, collapse = "|")
 u_words <- str_c(u_words, collapse = "|")
 
-combined_data <- bind_rows(us_data, uk_data, canada_data) %>% 
-  rename('id' = 'X1') %>% 
+combined_data <- bind_rows(us_data, uk_data, canada_data) %>%
+  rename('id' = 'X1') %>%
   mutate(id = as.integer(seq(1, dim(.)[1], 1))
          ,year = year(time)
          ,month = month(time)
          ,day = day(time)
          ,hour = hour(time)
          ,message = str_to_lower(message)
-         ,i_count = str_count(message, i_words) 
+         ,i_count = str_count(message, i_words)
          ,u_count = str_count(message, u_words)
          ,num_words = lengths(gregexpr("\\W+", message))
          ,num_characters = str_length(message)
-         ,characters_per_word = num_characters / num_words) %>% 
+         ,characters_per_word = num_characters / num_words) %>%
   select(-post_id, -time)
 
 combined_data$university[combined_data$university == "Purdue University--West Lafayette:574281165929300posts"] <- "Purdue University"
 combined_data$university[combined_data$university == "Rhodes College:418059621625397posts"] <- "Rhodes College"
+```
 
+<br>
 
-########### EDA ############
+### How much data?
 
-# Observations per Country
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 tibble(country = c('United States', 'Canada', 'United Kingdom')
-      ,num_observations = c(nrow(us_data), nrow(canada_data), nrow(uk_data))) %>%
-  kable(align = c('c', 'c'), format = 'html') %>% 
+      ,num_observations = c(nrow(us_data), nrow(canada_data), nrow(uk_data))) %>% 
+    kable(align = c('c', 'c'), format = 'html') %>% 
   kable_styling(full_width = F, position = "left")
-            
-# Observations per University
+```
+
+<br>
+
+### Date Range (Year)
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+combined_data %>% 
+  group_by(year) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = year, y = count)) +
+  geom_bar(stat = "identity", fill = 'black') +
+  theme_fivethirtyeight()
+```
+
+<br>
+
+### Universities with the Most Posts
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 total_university_posts <- combined_data %>% 
   group_by(university) %>% 
   summarise(count = n()) %>% 
@@ -63,25 +108,45 @@ total_university_posts %>%
   geom_bar(stat = "identity", fill = 'black') +
   coord_flip() +
   theme_fivethirtyeight()
+```
 
-# Displays range of number of posts for universities
+<br>
+
+### Range of Posts for the Universities
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 for_quantiles <- combined_data %>% 
   group_by(university) %>% 
   summarise(count = n())
 
-quantile(for_quantiles$count) %>% kable()
+quantile(for_quantiles$count)
+```
 
-# Observations by time of day
-combined_data %>% 
-  group_by(year) %>% 
-  summarise(count = n()) %>% 
-  arrange(desc(count)) %>% 
-  head(10) %>% 
-  ggplot(aes(x = year, y = count)) +
-  geom_bar(stat = "identity", fill = 'black') +
-  theme_fivethirtyeight()
+<br>
 
+### What [raw] variables?
 
+* Datetime
+* Post
+* Number of Likes
+* Number of Comments
+* University
+* Country
+
+<br>
+
+### Variables have we added?
+
+* Separated Datetime into: Year, month, day
+* Number of Words
+* Number of Characters
+* Characters per Word
+* I-Words (I, I've, I'd, I'll, I'm)
+* You-Words (You, You've, You'd, You'll, You're)
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # I-Words versus You-Words
 for_iu_words <- combined_data %>%
   filter(university %in% total_university_posts$university) %>% 
@@ -117,22 +182,37 @@ graph_summary <- for_iu_good %>%
 graph_summary2 <- for_iu_bad %>%
   mutate(university = rep(universities_iu_bad, nrow(.)/length(universities_iu_bad))) %>%
   filter(key %in% c('i_to_u_ratio'))
+```
 
+<br>
 
-ggplot(graph_summary, aes(x = key, y = value)) +
-  geom_bar(stat = 'identity', fill = 'black') +
-  facet_wrap(~ university) +
-  ggtitle("Number of 'I-words' vs Number of 'U-words'") +
-  theme_fivethirtyeight()
+### Most Narcissistic Schools
 
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 ggplot(graph_summary2, aes(x = key, y = value)) +
   geom_bar(stat = 'identity', fill = 'black') +
   facet_wrap(~ university) +
   ggtitle("Number of 'I-words' vs Number of 'U-words'") +
   theme_fivethirtyeight()
+```
 
+<br>
 
-######### Average Number of Words
+### Most Altruistic Schools
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+ggplot(graph_summary, aes(x = key, y = value)) +
+  geom_bar(stat = 'identity', fill = 'black') +
+  facet_wrap(~ university) +
+  ggtitle("Number of 'I-words' vs Number of 'U-words'") +
+  theme_fivethirtyeight()
+```
+
+<br>
+
+### Average Number of Words
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 combined_data %>% 
   filter(university %in% total_university_posts$university) %>%
   group_by(university) %>% 
@@ -142,8 +222,13 @@ combined_data %>%
   geom_bar(stat = "identity", fill = 'black') +
   coord_flip() +
   theme_fivethirtyeight()
+```
 
-######### Average Number of Characters per Word
+<br>
+
+### Average Characters per Word
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 combined_data %>% 
   filter(university %in% total_university_posts$university) %>%
   group_by(university) %>% 
@@ -153,6 +238,50 @@ combined_data %>%
   geom_bar(stat = "identity", fill = 'black') +
   coord_flip() +
   theme_fivethirtyeight()
-  
+```
 
+<br>
 
+# Part 2: Sentiment Analysis
+
+Preprocessing included:
+
+1. Removal of stopwords, punctuation, whitespace 
+2. Removal of words with a sparsity greater than 99%
+    * Led to reduction of words from 42,961 words to 393 words
+    
+<br>
+
+### Most Used Words
+    
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+tidy(dtm3) %>% 
+  group_by(term) %>% 
+  summarise(count = sum(count)) %>% 
+  mutate(perc = round(count / dim(tidy(dtm3))[1], 4)) %>% 
+  arrange(desc(count)) %>% 
+  head(10) %>% 
+  kable()
+```
+
+<br>
+
+### Sentiments
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+graph_summary <- summary %>% gather()
+labels <- filter(graph_summary, key == 'label')$value
+
+graph_summary1 <- graph_summary %>% 
+  mutate(value = round(as.double(value), 4)
+    ,label = rep(labels, nrow(.)/9)) %>%   
+  filter(!key %in% c('label', 'num_words', 'num_lines', 'avg_words', 'i_words', 'u_words'
+                     , 'i_to_u_ratio', 'mean_afinn', 'mean_bing'))
+                     
+ggplot(graph_summary1, aes(x = key, y = value)) +
+  geom_bar(stat = 'identity', fill = 'black') +
+  coord_flip() +
+  facet_wrap(~ label) +
+  ggtitle("Sentiment by Category") +
+  theme_economist()
+```
