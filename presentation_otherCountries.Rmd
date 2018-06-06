@@ -170,8 +170,11 @@ quantile(for_quantiles$count)
 * Stop Word Count
 * Stop Word Percent of Total Words
 
-I-Words = I, I've, I'd, I'll, I'm\n
-You-Words = You, You've, You'd, You'll, You're
+**I-Words** = I, I've, I'd, I'll, I'm
+
+<br>
+
+**You-Words** = You, You've, You'd, You'll, You're
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # I-Words versus You-Words
@@ -216,7 +219,7 @@ graph_summary2 <- for_iu_bad %>%
 ### Most Narcissistic Schools
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 6, fig.width = 6, fig.align = "center"}
-ggplot(graph_summary2, aes(x = key, y = value)) +
+ggplot(graph_summary2, aes(x = reorder(key, value), y = value)) +
   geom_bar(stat = 'identity', fill = 'black') +
   facet_wrap(~ university) +
   ggtitle("Number of 'I-words' vs Number of 'U-words'") +
@@ -228,7 +231,7 @@ ggplot(graph_summary2, aes(x = key, y = value)) +
 ### Most Altruistic Schools
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 6, fig.width = 6, fig.align = "center"}
-ggplot(graph_summary, aes(x = key, y = value)) +
+ggplot(graph_summary, aes(x = reorder(key, value), y = value)) +
   geom_bar(stat = 'identity', fill = 'black') +
   facet_wrap(~ university) +
   ggtitle("Number of 'I-words' vs Number of 'U-words'") +
@@ -355,6 +358,8 @@ Preprocessing included:
 1. Removal of stopwords, punctuation, whitespace 
 2. Removal of words with a sparsity greater than 99%
     * Led to reduction of words from 42,961 words to 393 words
+3. Added 3 sentiment libraries: afinn, bing, and nrc
+    * We'll focus on nrc, but afinn and bing are left in for use in unsurpervised learning
     
 <br>
 
@@ -509,8 +514,11 @@ grid.arrange(plot_anger, plot_sadness, plot_fear, plot_disgust, nrow = 2, ncol =
 grid.arrange(plot_anticipation, plot_joy, plot_surprise, plot_trust, nrow = 2, ncol = 2)
 ```
 
+<br>
 
 # Part 3: Prediction
+
+<br>
 
 ### Boosted Tree
 
@@ -553,7 +561,9 @@ validation_data_xgb <- validation_data %>%
   mutate(prediction = predict(xgboost_model, x_test)
          ,accuracy = ifelse(country == prediction, 1, 0))
 
-tibble('Model' = 'Boosted Tree', 'Accuracy' = mean(validation_data_xgb$accuracy)) %>% kable()
+tibble('Model' = 'Boosted Tree', 'Accuracy' = mean(validation_data_xgb$accuracy)) %>% 
+  kable(align = c('c'), format = 'html') %>% 
+  kable_styling(full_width = F, position = "left")
 ```
 
 <br>
@@ -567,7 +577,9 @@ validation_data_rf <- validation_data %>%
   mutate(prediction = predict(rf_model, validation_data)
          ,accuracy = ifelse(country == prediction, 1, 0))
 
-tibble('Model' = 'Random Forest', 'Accuracy' = mean(validation_data_rf$accuracy)) %>% kable()
+tibble('Model' = 'Random Forest', 'Accuracy' = mean(validation_data_rf$accuracy)) %>%
+  kable(align = c('c'), format = 'html') %>% 
+  kable_styling(full_width = F, position = "left")
 ```
 
 <br>
@@ -589,9 +601,13 @@ validation_data_bag <- validation_data %>%
   mutate(prediction = predict(bag_model, validation_data)
          ,accuracy = ifelse(country == prediction, 1, 0))
 
-tibble('Model' = 'Bagging', 'Accuracy' = mean(validation_data_rf$accuracy)) %>% kable()
+tibble('Model' = 'Bagging', 'Accuracy' = mean(validation_data_rf$accuracy)) %>%
+  kable(align = c('c'), format = 'html') %>% 
+  kable_styling(full_width = F, position = "left")
 ```
 
+
+<br>
 
 # Part 4: Unsupervised Learning
 
@@ -644,7 +660,7 @@ biplot(pca_results)
 
 # Next Steps
 
-* Why are Canadians so emotional?
+* Investigate Canada
 * Predict more granular class (e.g. region, state, university)
 * Figure out why we're getting 100% accuracy (this seems unrealistic)
 * Spend more time on the unsupervised learning

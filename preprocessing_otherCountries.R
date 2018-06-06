@@ -9,13 +9,13 @@ library(tm)
 ########### Import Data ################
 
 
-us_data <- read_csv('data/us.csv') %>% 
+us_data <- read_csv('data/us_original.csv') %>% 
   mutate(country = 'united_states')
 
-uk_data <- read_csv('data/uk.csv') %>% 
+uk_data <- read_csv('data/uk_original.csv') %>% 
   mutate(country = 'united_kingdom')
 
-canada_data <- read_csv('data/canada.csv') %>% 
+canada_data <- read_csv('data/canada_original.csv') %>% 
   mutate(country = 'canada')
 
 i_words <- c("\\s*i\\s+", "i've", "i'm", "i'll", "i'd")
