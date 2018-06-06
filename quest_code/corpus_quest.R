@@ -1,6 +1,7 @@
 library(tm)
 library(tidytext)
 library(topicmodels)
+library(imager)
 
 fcb_data <- read_csv('data/FCB.csv') 
 
@@ -99,11 +100,10 @@ tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_bing, by = c('document'
 
 data_scaled <- scale(select(drop_na(tidy_dtm_grouped), -document, -label)) %>% as.matrix()
 
-# k_max <- nrow(drop_na(tidy_dtm_grouped)) - 1
-k_max <- 40
+k_max <- 100
 
 kmeans_out <- sapply(1:k_max, 
-                     function(k){kmeans(data_scaled, k, nstart = 20, iter.max = k_max)$tot.withinss})
+                     function(k){kmeans(data_scaled, k, nstart = 100, iter.max = k_max)$tot.withinss})
 
 plot(1:k_max, kmeans_out
      , type = "b"
@@ -111,3 +111,5 @@ plot(1:k_max, kmeans_out
      , frame = FALSE
      , xlab="Number of clusters K"
      , ylab="Total within-clusters sum of squares")
+
+
