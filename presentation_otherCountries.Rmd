@@ -1,6 +1,6 @@
 ---
-title: "Data from Facebook Confessions Forums"
-author: "Adrian Naranjo"
+title: "Inference and Prediction of Coutry from Facebook Confessions Forums"
+author: "Adrian Naranjo, Ivan Carrasco, & Sonam Awachar"
 ---
 
 <br>
@@ -755,7 +755,8 @@ bag_accuracy_woNumLikes <- tibble('Model' = 'Bagging', 'Accuracy' = round(mean(v
 #################### Combine ##################
 
 accuracies <- bind_rows(boosted_accuracy_woNumLikes, rf_accuracy_woNumLikes, bag_accuracy_woNumLikes)
-accuracies %>% kable()
+accuracies %>%   kable(align = c('c', 'c'), format = 'html') %>% 
+  kable_styling(full_width = F, position = "left")
 ```
 
 
@@ -840,7 +841,8 @@ bag_accuracy_woNumLikes <- tibble('Model' = 'Bagging', 'Accuracy' = round(mean(v
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 accuracies <- bind_rows(boosted_accuracy_woNumLikes, rf_accuracy_woNumLikes, bag_accuracy_woNumLikes)
-accuracies %>% kable()
+accuracies %>%  kable(align = c('c', 'c'), format = 'html') %>% 
+  kable_styling(full_width = F, position = "left")
 ```
 
 <br> 
