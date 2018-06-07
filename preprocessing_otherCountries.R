@@ -7,16 +7,22 @@ library(tm)
 
 
 ########### Import Data ################
+set.seed(123456)
 
-
-us_data <- read_csv('data/us_original.csv') %>% 
-  mutate(country = 'united_states')
+us_data <- read_csv('data/us_new.csv') %>% 
+  mutate(country = 'united_states') %>% 
+  filter(!is.na(university)) %>% 
+  rename('region' = 'Region')
 
 uk_data <- read_csv('data/uk_original.csv') %>% 
-  mutate(country = 'united_kingdom')
+  mutate(country = 'united_kingdom'
+         ,state = 'united_kingdom'
+         ,region = 'united_kingdom')
 
 canada_data <- read_csv('data/canada_original.csv') %>% 
-  mutate(country = 'canada')
+  mutate(country = 'canada'
+         ,state = 'canada'
+         ,region = 'canada')
 
 i_words <- c("\\s*i\\s+", "i've", "i'm", "i'll", "i'd")
 u_words <- c("you\\s", "you've", "you're", "you'll", "you'd", "\\su\\s", "u've", "u're", "u'll", "u'd")
@@ -41,12 +47,13 @@ combined_data <- bind_rows(us_data, uk_data, canada_data) %>%
          ,iu_ratio = i_count / (u_count + 1)
          ,stopword_count = str_count(message, stopwords())
          ,stopword_perc = str_count(message, stopwords()) / num_words
-         ,country = factor(country)
          # ,country2 = factor(ifelse(country == 'united_states', 1, ifelse(country == 'canada', 2, 0)))
          ,year = factor(year)
          ,month = factor(month)
          ,day = factor(day)
-         ,hour = factor(hour)) %>% 
+         ,hour = factor(hour)
+         ,state = factor(state)
+         ,region = factor(region)) %>% 
   select(-post_id, -time)
 
 combined_data$university[combined_data$university == "Purdue University--West Lafayette:574281165929300posts"] <- "Purdue University"
@@ -64,6 +71,7 @@ combined_data$university[combined_data$university == "Smith College:656392224417
 combined_data$university[combined_data$university == "Southwestern University:154639111371519posts"] <- "Southwestern University"
 combined_data$university[combined_data$university == "St. Lawrence University:578380385537855posts"] <- "St. Lawrence University" 
 
+combined_data$university[combined_data$state == "MA"] <- "Northeast" 
 
 combined_data$university <- factor(combined_data$university)
 
@@ -77,9 +85,22 @@ tibble(country = c('United States', 'Canada', 'United Kingdom')
       ,num_observations = c(nrow(us_data), nrow(canada_data), nrow(uk_data))) %>%
   kable(align = c('c', 'c'), format = 'html') %>% 
   kable_styling(full_width = F, position = "left")
+
+
+# Observation per Region/State
+total_region_state_posts <- combined_data %>% 
+  group_by(region, state) %>% 
+  filter(!country %in% c('canada', 'united_kingdom')) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count)) 
+
+total_region_state_posts %>% 
+  ggplot(aes(x = reorder(region, count), y = count, fill = state)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_fivethirtyeight()
            
  
-
 # Observations per University
 total_university_posts <- combined_data %>% 
   group_by(university) %>% 

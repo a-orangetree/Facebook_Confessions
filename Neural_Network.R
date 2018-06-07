@@ -10,7 +10,7 @@ test_data <- anti_join(tidy_dtm_grouped_noNa, train_data)
 
 # Create train and test sets
 x_train <- model.matrix(~ ., data = select(train_data, -university))[,-1]
-y_train <- model.matrix(~ train_data$university)
+y_train <- to_categorical(train_data$university)
 # for(unique_value in unique(train_data$university)) {y_train[paste("university", unique_value, sep = ".")] <- ifelse(train_data$university == unique_value, 1, 0)}
 
 x_test <- model.matrix(~ ., data = select(test_data, -university))[,-1]

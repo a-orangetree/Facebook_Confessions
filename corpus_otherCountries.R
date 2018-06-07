@@ -100,7 +100,7 @@ tidy_dtm_afinn <- tidy_dtm %>%
 
 tidy_dtm_grouped <- tidy_dtm %>% 
   select(document, num_likes, num_comments, university, country, year, month, day, hour, num_words, i_count, u_count
-         , i_perc, u_perc, stopword_count, stopword_perc, iu_ratio) %>% 
+         , i_perc, u_perc, stopword_count, stopword_perc, iu_ratio, state, region, characters_per_word) %>% 
   unique()
 
 tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_nrc, by = c('document' = 'document'))
@@ -112,8 +112,9 @@ tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_bing, by = c('document'
 
 graph_summary3 <- tidy_dtm_grouped %>% 
   filter(university %in% total_university_posts$university) %>% 
-  select(-num_likes, -num_comments, -country, -i_count, -u_count, -year, -month, -day, -iu_ratio,
-           -num_words, -avg_afinn, -avg_bing, -document, -hour, -i_perc, -u_perc, -stopword_count, -stopword_perc) %>% 
+  select(-num_likes, -num_comments, -country, -i_count, -u_count, -year, -month, -day, -iu_ratio, -characters_per_word
+           -num_words, -avg_afinn, -avg_bing, -document, -hour, -i_perc, -u_perc, -stopword_count, -stopword_perc,
+         -state, -region) %>% 
   group_by(university) %>% 
   summarise(anger = log(mean(anger) + 1)
             ,anticipation = log(mean(anticipation) + 1)
@@ -228,7 +229,7 @@ grid.arrange(plot_anticipation, plot_joy, plot_surprise, plot_trust, nrow = 2, n
 
 ############ Clustering #####################
 
-tidy_dtm_grouped_clust <- select(tidy_dtm_grouped, -country, -university, -document, -year, -month, -day, -hour)
+tidy_dtm_grouped_clust <- select(tidy_dtm_grouped, -country, -university, -document, -year, -month, -day, -hour, -state, -region)
 scaled_data <- scale(model.matrix(~ ., data = drop_na(tidy_dtm_grouped_clust))[,-1])
 
 k_max <- length(unique(drop_na(tidy_dtm_grouped)$university)) - 1
@@ -254,11 +255,10 @@ plotcluster(drop_na(tidy_dtm_grouped_clust), kmean_obj$cluster)
 ########## PCA ########################
 
 
-pca_results <- princomp(scaled_data)
+pca_results <- prcomp(scaled_data)
 summary(pca_results) 
-# pca_results$scores
 
-biplot(pca_results)
+biplot(pca_results, ylim = c(-.02, .02 ))
 
 
 stop()

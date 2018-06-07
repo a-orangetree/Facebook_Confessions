@@ -7,7 +7,9 @@ author: "Adrian Naranjo"
 
 # Part 1: Introduction & Descriptive Analysis
 
-#### Confession pages are...
+<br>
+
+### Confession pages are...
 
 * Social networking websites
 * Used at schools and universities 
@@ -35,15 +37,23 @@ library(randomForest)
 ```
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
+set.seed(123456)
+
 # Import data
-us_data <- read_csv('data/us.csv') %>% 
-  mutate(country = 'united_states')
+us_data <- read_csv('data/us_new.csv') %>% 
+  mutate(country = 'united_states') %>% 
+  filter(!is.na(university)) %>% 
+  rename('region' = 'Region')
 
-uk_data <- read_csv('data/uk.csv') %>% 
-  mutate(country = 'united_kingdom')
+uk_data <- read_csv('data/uk_original.csv') %>% 
+  mutate(country = 'united_kingdom'
+         ,state = 'united_kingdom'
+         ,region = 'united_kingdom')
 
-canada_data <- read_csv('data/canada.csv') %>% 
-  mutate(country = 'canada')
+canada_data <- read_csv('data/canada_original.csv') %>% 
+  mutate(country = 'canada'
+         ,state = 'canada'
+         ,region = 'canada')
 
 i_words <- c("\\s*i\\s+", "i've", "i'm", "i'll", "i'd")
 u_words <- c("you\\s", "you've", "you're", "you'll", "you'd", "\\su\\s", "u've", "u're", "u'll", "u'd")
@@ -114,6 +124,25 @@ combined_data %>%
 
 <br>
 
+### US Regions/States with Most Posts
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 6, fig.width = 6, fig.align = "center"}
+# Observation per Region/State
+total_region_state_posts <- combined_data %>% 
+  group_by(region, state) %>% 
+  filter(!country %in% c('canada', 'united_kingdom')) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count)) 
+
+total_region_state_posts %>% 
+  ggplot(aes(x = reorder(region, count), y = count, fill = state)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_fivethirtyeight()
+```
+
+<br>
+
 ### Universities with the Most Posts
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 6, fig.width = 6, fig.align = "center"}
@@ -153,6 +182,8 @@ quantile(for_quantiles$count)
 * Number of Comments
 * University
 * Country
+* Region
+* State
 
 <br>
 
@@ -170,11 +201,13 @@ quantile(for_quantiles$count)
 * Stop Word Count
 * Stop Word Percent of Total Words
 
-**I-Words** = I, I've, I'd, I'll, I'm
+<br>
+
+#### I-Words = I, I've, I'd, I'll, I'm
 
 <br>
 
-**You-Words** = You, You've, You'd, You'll, You're
+#### You-Words = You, You've, You'd, You'll, You're
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # I-Words versus You-Words
@@ -342,8 +375,7 @@ tidy_dtm_afinn <- tidy_dtm %>%
 
 
 tidy_dtm_grouped <- tidy_dtm %>% 
-  select(document, num_likes, num_comments, university, country, year, month, day, hour, num_words, i_count, u_count
-         , i_perc, u_perc, stopword_count, stopword_perc, iu_ratio) %>% 
+  select(document, num_likes, num_comments, university, country, year, month, day, hour, num_words, i_count, u_count, characters_per_word, i_perc, u_perc, stopword_count, stopword_perc, iu_ratio, state, region) %>% 
   unique()
 
 tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_nrc, by = c('document' = 'document'))
@@ -359,7 +391,7 @@ Preprocessing included:
 2. Removal of words with a sparsity greater than 99%
     * Led to reduction of words from 42,961 words to 393 words
 3. Added 3 sentiment libraries: afinn, bing, and nrc
-    * We'll focus on nrc, but afinn and bing are left in for use in unsurpervised learning
+    * We'll focus on nrc, but afinn and bing are left in for use in prediction and unsurpervised learning
     
 <br>
 
@@ -394,8 +426,9 @@ tidy(dtm3) %>%
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 graph_summary3 <- tidy_dtm_grouped %>% 
   filter(university %in% total_university_posts$university) %>% 
-  select(-num_likes, -num_comments, -country, -i_count, -u_count, -year, -month, -day, -iu_ratio,
-           -num_words, -avg_afinn, -avg_bing, -document, -hour, -i_perc, -u_perc, -stopword_count, -stopword_perc) %>% 
+  select(-num_likes, -num_comments, -country, -i_count, -u_count, -year, -month, -day, -iu_ratio, -characters_per_word,
+           -num_words, -avg_afinn, -avg_bing, -document, -hour, -i_perc, -u_perc, -stopword_count, -stopword_perc,
+         -state, -region) %>% 
   group_by(university) %>% 
   summarise(anger = log(mean(anger) + 1)
             ,anticipation = log(mean(anticipation) + 1)
@@ -518,14 +551,36 @@ grid.arrange(plot_anticipation, plot_joy, plot_surprise, plot_trust, nrow = 2, n
 
 # Part 3: Prediction
 
+#### Note: Only the below parameters were used
+
+* Number of Likes
+* Number of Comments
+* Number of Words
+* Number of Characters
+* Characters per Word
+* I-Word Count 
+* I-Word Percent of Total Words
+* You-Word Count
+* You-Word Percent of Total Words
+* I-Word to U-Word Ratio
+* Stop Word Count
+* Stop Word Percent of Total Words
+* Sentiment libraries (nrc, bing, afinn)
+
+<br>
+
+#### To be clear, these parameters were not used
+
+* Datetime
+* Post
+* University
+* Country
+* Region
+* State
+
 <br>
 
 ### Boosted Tree
-
-* ETA (Learning Rate) = .3
-* Max Depth = 6
-* Grow Policy = Depth-wise
-* Used 10-Fold Cross-Validation
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
 number_of_classes <- length(unique(tidy_dtm_grouped$country))
@@ -536,12 +591,12 @@ tidy_dtm_grouped$country <- factor(ifelse(tidy_dtm_grouped$country == 'united_st
 training_data <- sample_frac(drop_na(tidy_dtm_grouped), .8)
 validation_data <- anti_join(drop_na(tidy_dtm_grouped), training_data)
 
-x <- model.matrix(~ ., data = select(training_data, -country, -university, -document, -year, -month, -day, -hour))[,-1]
+x <- model.matrix(~ ., data = select(training_data, -country, -university, -document, -year, -month, -day, -hour, -state, -region))[,-1]
 y <- select(training_data, country) %>% as.matrix()
 
 dtrain <- xgb.DMatrix(data = x, label = y)
 
-x_test <- model.matrix(~ ., data = select(validation_data, -country, -university, -document, -year, -month, -day, -hour))[,-1]
+x_test <- model.matrix(~ ., data = select(validation_data, -country, -university, -document, -year, -month, -day, -hour, -state, -region))[,-1]
 
 xgboost_cv <- xgb.cv(data = dtrain
                      , nrounds = 10000
@@ -561,31 +616,34 @@ validation_data_xgb <- validation_data %>%
   mutate(prediction = predict(xgboost_model, x_test)
          ,accuracy = ifelse(country == prediction, 1, 0))
 
-tibble('Model' = 'Boosted Tree', 'Accuracy' = mean(validation_data_xgb$accuracy)) %>% 
+tibble('Model' = 'Boosted Tree', 'Accuracy' = round(mean(validation_data_xgb$accuracy), 3)) %>% 
   kable(align = c('c'), format = 'html') %>% 
   kable_styling(full_width = F, position = "left")
 ```
+
+<br> 
+
+#### Parameters used:
+
+* ETA (Learning Rate) = .3
+* Max Depth = 6
+* Grow Policy = Depth-wise
+* Used 10-Fold Cross-Validation
 
 <br>
 
 ### Random Forest
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
-rf_model <- randomForest(country ~ ., data = select(training_data, -university, -document, -year, -month, -day, -hour))
+rf_model <- randomForest(country ~ ., data = select(training_data, -university, -document, -year, -month, -day, -hour, -state, -region))
         
 validation_data_rf <- validation_data %>% 
   mutate(prediction = predict(rf_model, validation_data)
          ,accuracy = ifelse(country == prediction, 1, 0))
 
-tibble('Model' = 'Random Forest', 'Accuracy' = mean(validation_data_rf$accuracy)) %>%
+tibble('Model' = 'Random Forest', 'Accuracy' = round(mean(validation_data_rf$accuracy), 3)) %>%
   kable(align = c('c'), format = 'html') %>% 
   kable_styling(full_width = F, position = "left")
-```
-
-<br>
-
-```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
-varImpPlot(rf_model)
 ```
 
 <br>
@@ -594,18 +652,202 @@ varImpPlot(rf_model)
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 bag_model <- randomForest(country ~ .
-                          , data = select(training_data, -university, -document, -year, -month, -day, -hour)
-                          , mtry = dim(select(training_data, -university, -document, -year, -month, -day, -hour))[2] - 1)
+                          , data = select(training_data, -university, -document, -year, -month, -day, -hour, -state, -region)
+                          , mtry = dim(select(training_data, -university, -document, -year, -month, -day, -hour, -state, -region))[2] - 1)
 
 validation_data_bag <- validation_data %>% 
   mutate(prediction = predict(bag_model, validation_data)
          ,accuracy = ifelse(country == prediction, 1, 0))
 
-tibble('Model' = 'Bagging', 'Accuracy' = mean(validation_data_rf$accuracy)) %>%
+tibble('Model' = 'Bagging', 'Accuracy' = round(mean(validation_data_rf$accuracy), 3)) %>%
   kable(align = c('c'), format = 'html') %>% 
   kable_styling(full_width = F, position = "left")
 ```
 
+<br>
+
+### Factors which affect Random Forest/Bagging Most
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
+varImpPlot(rf_model)
+```
+
+<br>
+
+### What's going on with Number of Likes?
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
+ggplot(tidy_dtm_grouped) +
+  geom_boxplot(aes(x = country, y = num_likes)) +
+  theme_fivethirtyeight()
+```
+
+<br>
+
+### Prediciton (Again). But, now without:
+
+* Number of Likes
+* Number of Comments
+* Number of Words
+* Characters per Word
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+x <- model.matrix(~ ., data = select(training_data, -country, -university, -document, -year, -month, -day, -hour, -state,
+                                     -region, -num_likes, -num_words, -num_comments, -characters_per_word))[,-1]
+y <- select(training_data, country) %>% as.matrix()
+
+dtrain <- xgb.DMatrix(data = x, label = y)
+
+x_test <- model.matrix(~ ., data = select(validation_data, -country, -university, -document, -year, -month, -day, -hour, -state,
+                                          -region, -num_likes, -num_words, -num_comments, -characters_per_word))[,-1]
+
+xgboost_cv <- xgb.cv(data = dtrain
+                     , nrounds = 10000
+                     , nfold = 10
+                     , early_stopping_rounds = 10
+                     , num_class = number_of_classes
+                     , objective = "multi:softmax"
+                     ,verbose = FALSE)
+
+xgboost_model <- xgboost(data = dtrain
+                         ,objective = "multi:softmax"
+                         ,num_class = number_of_classes
+                         ,nrounds = xgboost_cv$best_iteration
+                         ,verbose = FALSE)
+
+validation_data_xgb <- validation_data %>% 
+  mutate(prediction = predict(xgboost_model, x_test)
+         ,accuracy = ifelse(country == prediction, 1, 0))
+
+boosted_accuracy_woNumLikes <- tibble('Model' = 'Boosted Tree', 'Accuracy' = round(mean(validation_data_xgb$accuracy), 3))
+
+
+############### Random Forest ######################
+
+
+rf_model <- randomForest(country ~ ., data = select(training_data, -university, -document, -year, -month, -day, -hour, -state,
+                                                    -region, -num_likes, -num_words, -num_comments, -characters_per_word))
+
+validation_data_rf <- validation_data %>% 
+  mutate(prediction = predict(rf_model, validation_data)
+         ,accuracy = ifelse(country == prediction, 1, 0))
+
+rf_accuracy_woNumLikes <- tibble('Model' = 'Random Forest', 'Accuracy' = round(mean(validation_data_rf$accuracy), 3))
+
+#################### Bagging ###################
+
+bag_model <- randomForest(country ~ .
+                          , data = select(training_data, -university, -document, -year, -month, -day, -hour, -state,
+                                          -region, -num_likes, -num_words, -num_comments, -characters_per_word)
+                          , mtry = dim(select(training_data, -university, -document, -year, -month, -day, -hour, -state,
+                                              -region, -num_likes, -num_words, -num_comments, -characters_per_word))[2] - 1)
+
+validation_data_bag <- validation_data %>% 
+  mutate(prediction = predict(bag_model, validation_data)
+         ,accuracy = ifelse(country == prediction, 1, 0))
+
+bag_accuracy_woNumLikes <- tibble('Model' = 'Bagging', 'Accuracy' = round(mean(validation_data_rf$accuracy), 3))
+```
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
+#################### Combine ##################
+
+accuracies <- bind_rows(boosted_accuracy_woNumLikes, rf_accuracy_woNumLikes, bag_accuracy_woNumLikes)
+accuracies %>% kable()
+```
+
+
+<br>
+
+### Importance Plot (Again)
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
+varImpPlot(rf_model)
+```
+
+
+<br>
+
+### One Last time... Now only including:
+
+* NRC Sentiments (neutral, positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, trust)
+* Average Afinn Rating
+* Average Bing Rating
+* I-word to You-Word Ratio
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+x <- model.matrix(~ ., data = select(training_data, neutral, avg_afinn, iu_ratio, avg_bing, positive, trust, anticipation,
+                                     negative, joy, surprise, disgust, anger, sadness, fear))[,-1]
+y <- select(training_data, country) %>% as.matrix()
+
+dtrain <- xgb.DMatrix(data = x, label = y)
+
+x_test <- model.matrix(~ ., data = select(validation_data, neutral, avg_afinn, iu_ratio, avg_bing, positive, trust, anticipation,
+                                          negative, joy, surprise, disgust, anger, sadness, fear))[,-1]
+
+xgboost_cv <- xgb.cv(data = dtrain
+                     , nrounds = 10000
+                     , nfold = 10
+                     , early_stopping_rounds = 10
+                     , num_class = number_of_classes
+                     , objective = "multi:softmax"
+                     ,verbose = FALSE)
+
+xgboost_model <- xgboost(data = dtrain
+                         ,objective = "multi:softmax"
+                         ,num_class = number_of_classes
+                         ,nrounds = xgboost_cv$best_iteration
+                         ,verbose = FALSE)
+
+validation_data_xgb <- validation_data %>% 
+  mutate(prediction = predict(xgboost_model, x_test)
+         ,accuracy = ifelse(country == prediction, 1, 0))
+
+boosted_accuracy_woNumLikes <- tibble('Model' = 'Boosted Tree', 'Accuracy' = round(mean(validation_data_xgb$accuracy), 3))
+
+############### Random Forest ##############
+
+rf_model <- randomForest(country ~ ., data = select(training_data, country, neutral, avg_afinn, iu_ratio, avg_bing, positive, trust, anticipation,
+                                                    negative, joy, surprise, disgust, anger, sadness, fear))
+
+validation_data_rf <- validation_data %>% 
+  mutate(prediction = predict(rf_model, validation_data)
+         ,accuracy = ifelse(country == prediction, 1, 0))
+
+rf_accuracy_woNumLikes <- tibble('Model' = 'Random Forest', 'Accuracy' = round(mean(validation_data_rf$accuracy), 3))
+
+varImpPlot(rf_model)
+
+############## Bagging ####################
+
+
+bag_model <- randomForest(country ~ .
+                          , data = select(training_data, country, neutral, avg_afinn, iu_ratio, avg_bing, positive, trust, anticipation,
+                                          negative, joy, surprise, disgust, anger, sadness, fear)
+                          , mtry = dim(select(training_data, country, neutral, avg_afinn, iu_ratio, avg_bing, positive, trust, anticipation,
+                                              negative, joy, surprise, disgust, anger, sadness, fear))[2] - 1)
+
+validation_data_bag <- validation_data %>% 
+  mutate(prediction = predict(bag_model, validation_data)
+         ,accuracy = ifelse(country == prediction, 1, 0))
+
+bag_accuracy_woNumLikes <- tibble('Model' = 'Bagging', 'Accuracy' = round(mean(validation_data_rf$accuracy), 3))
+```
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+accuracies <- bind_rows(boosted_accuracy_woNumLikes, rf_accuracy_woNumLikes, bag_accuracy_woNumLikes)
+accuracies %>% kable()
+```
+
+<br> 
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
+varImpPlot(rf_model)
+```
 
 <br>
 
@@ -616,7 +858,7 @@ tibble('Model' = 'Bagging', 'Accuracy' = mean(validation_data_rf$accuracy)) %>%
 ### Clustering: How many Clusters (where's the elbow)?
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
-tidy_dtm_grouped_clust <- select(tidy_dtm_grouped, -country, -university, -document, -year, -month, -day, -hour)
+tidy_dtm_grouped_clust <- select(tidy_dtm_grouped, -country, -university, -document, -year, -month, -day, -hour, -state, -region)
 scaled_data <- scale(model.matrix(~ ., data = drop_na(tidy_dtm_grouped_clust))[,-1])
 
 kmeans_out <- sapply(1:15,
@@ -632,7 +874,7 @@ plot_kmeans <- plot(1:15, kmeans_out
 
 <br>
 
-### We'll go with 13...
+### We'll go with 13 Clusters...
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
 kmean_obj <- kmeans(scaled_data, 13, nstart = 50, iter.max = 100)
@@ -651,17 +893,17 @@ summary(pca_results)
 
 <br>
 
-### Plotting the First Two Principal Components?
+### Plotting the First Two Principal Components
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
-biplot(pca_results)
+biplot(pca_results, ylim = c(-.02, .02 ))
 ```
 
+<br>
 
 # Next Steps
 
-* Investigate Canada
-* Predict more granular class (e.g. region, state, university)
-* Figure out why we're getting 100% accuracy (this seems unrealistic)
-* Spend more time on the unsupervised learning
+* Investigate the bias in our prediciton. 100% accuracy is not realistic.
+* Investigate Canada. Why are they are so emotional?
+* Be more ambitious in our prediction. Make it more granular (e.g. region, state, university)
 * Topic Modeling
