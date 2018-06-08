@@ -94,3 +94,6 @@ tibble('Model' = 'Bagging', 'Accuracy' = round(mean(validation_data_rf$accuracy)
 ggplot(tidy_dtm_grouped) +
   geom_boxplot(aes(x = country, y = num_likes)) +
   theme_fivethirtyeight()
+
+
+###############################################

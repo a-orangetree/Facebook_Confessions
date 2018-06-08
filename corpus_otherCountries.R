@@ -107,7 +107,7 @@ tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_nrc, by = c('document' 
 tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_afinn, by = c('document' = 'document'))
 tidy_dtm_grouped <- left_join(tidy_dtm_grouped, tidy_dtm_bing, by = c('document' = 'document'))
 
-
+stop()
 ############## Graphing Sentiments #####################
 
 graph_summary3 <- tidy_dtm_grouped %>% 
@@ -227,6 +227,7 @@ grid.arrange(plot_negative, plot_positive, nrow = 1, ncol = 2)
 grid.arrange(plot_anger, plot_sadness, plot_fear, plot_disgust, nrow = 2, ncol = 2)
 grid.arrange(plot_anticipation, plot_joy, plot_surprise, plot_trust, nrow = 2, ncol = 2)
 
+stop()
 ############ Clustering #####################
 
 tidy_dtm_grouped_clust <- select(tidy_dtm_grouped, -country, -university, -document, -year, -month, -day, -hour, -state, -region)
@@ -251,16 +252,29 @@ kmean_obj <- kmeans(scaled_data, 13, nstart = 50, iter.max = 100)
 
 plotcluster(drop_na(tidy_dtm_grouped_clust), kmean_obj$cluster)
 
-
+stop()
 ########## PCA ########################
 
+tidy_dtm_grouped_pca <- select(validation_data, neutral, avg_afinn, iu_ratio, avg_bing, positive, trust, anticipation,
+                                 negative, joy, surprise, disgust, anger, sadness, fear)
+
+scaled_data <- scale(model.matrix(~ ., data = drop_na(tidy_dtm_grouped_pca))[,-1])
 
 pca_results <- prcomp(scaled_data)
 summary(pca_results) 
 
-biplot(pca_results, ylim = c(-.02, .02 ))
+# (pca_results$rotation)[,1:2]
+pc1 <- (pca_results$rotation)[,1]
+pc2 <- (pca_results$rotation)[,2]
+
+pc1 <- tibble(variables = names(pc1), loadings = pc1)
+pc2 <- tibble(variables = names(pc2), loadings = pc2)
+
+pc1 %>% arrange(desc(loadings))
+pc2 %>% arrange(desc(loadings))
+
+biplot(pca_results, ylim = c(-.03, .03))
 
 
-stop()
 ########### Topic Modeling ##################
 

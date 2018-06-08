@@ -1,5 +1,5 @@
 ---
-title: "Inference and Prediction of Coutry from Facebook Confessions Forums"
+title: "Inference and Prediction of Country from Facebook Confessions Forums"
 author: "Adrian Naranjo, Ivan Carrasco, & Sonam Awachar"
 ---
 
@@ -182,8 +182,6 @@ quantile(for_quantiles$count)
 * Number of Comments
 * University
 * Country
-* Region
-* State
 
 <br>
 
@@ -200,6 +198,8 @@ quantile(for_quantiles$count)
 * I-Word to U-Word Ratio
 * Stop Word Count
 * Stop Word Percent of Total Words
+* Region
+* State
 
 <br>
 
@@ -551,7 +551,7 @@ grid.arrange(plot_anticipation, plot_joy, plot_surprise, plot_trust, nrow = 2, n
 
 # Part 3: Prediction
 
-#### Note: Only the below parameters were used
+#### Note: Only the below parameters were used:
 
 * Number of Likes
 * Number of Comments
@@ -569,7 +569,7 @@ grid.arrange(plot_anticipation, plot_joy, plot_surprise, plot_trust, nrow = 2, n
 
 <br>
 
-#### To be clear, these parameters were not used
+#### To be clear, these parameters were NOT used:
 
 * Datetime
 * Post
@@ -819,7 +819,6 @@ validation_data_rf <- validation_data %>%
 
 rf_accuracy_woNumLikes <- tibble('Model' = 'Random Forest', 'Accuracy' = round(mean(validation_data_rf$accuracy), 3))
 
-varImpPlot(rf_model)
 
 ############## Bagging ####################
 
@@ -834,7 +833,7 @@ validation_data_bag <- validation_data %>%
   mutate(prediction = predict(bag_model, validation_data)
          ,accuracy = ifelse(country == prediction, 1, 0))
 
-bag_accuracy_woNumLikes <- tibble('Model' = 'Bagging', 'Accuracy' = round(mean(validation_data_rf$accuracy), 3))
+bag_accuracy_woNumLikes <- tibble('Model' = 'Bagging', 'Accuracy' = round(mean(validation_data_bag$accuracy), 3))
 ```
 
 <br>
@@ -889,7 +888,12 @@ plotcluster(drop_na(tidy_dtm_grouped_clust), kmean_obj$cluster)
 ### Principal Components: What matters?
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
-pca_results <- princomp(scaled_data)
+tidy_dtm_grouped_pca <- select(validation_data, neutral, avg_afinn, iu_ratio, avg_bing, positive, trust, anticipation,
+                                 negative, joy, surprise, disgust, anger, sadness, fear)
+
+scaled_data <- scale(model.matrix(~ ., data = drop_na(tidy_dtm_grouped_pca))[,-1])
+
+pca_results <- prcomp(scaled_data)
 summary(pca_results) 
 ```
 
@@ -898,14 +902,115 @@ summary(pca_results)
 ### Plotting the First Two Principal Components
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
-biplot(pca_results, ylim = c(-.02, .02 ))
+biplot(pca_results, ylim = c(-.03, .03))
+```
+
+### First Principal Component
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+pc1 <- (pca_results$rotation)[,1]
+pc2 <- (pca_results$rotation)[,2]
+
+pc1 <- tibble(variables = names(pc1), loadings = round(pc1, 3))
+pc2 <- tibble(variables = names(pc2), loadings = round(pc2, 3))
+
+pc1 %>% arrange(desc(loadings)) %>% kable(align = c('c', 'c'), format = 'html') %>% 
+  kable_styling(full_width = F, position = "left")
 ```
 
 <br>
 
+### Second Principal Component
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+pc2 %>% arrange(desc(loadings)) %>% kable(align = c('c', 'c'), format = 'html') %>% 
+  kable_styling(full_width = F, position = "left")
+```
+
+<br>
+
+# Part 5: Prediction (Last Time, Seriously)
+
+<br> 
+
+### Using only NRC Sentiments
+ * neutral, positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, trust
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+x <- model.matrix(~ ., data = select(training_data, neutral, positive, trust, anticipation,
+                                     negative, joy, surprise, disgust, anger, sadness, fear))[,-1]
+y <- select(training_data, country) %>% as.matrix()
+
+dtrain <- xgb.DMatrix(data = x, label = y)
+
+x_test <- model.matrix(~ ., data = select(validation_data, neutral, positive, trust, anticipation,
+                                          negative, joy, surprise, disgust, anger, sadness, fear))[,-1]
+
+xgboost_cv <- xgb.cv(data = dtrain
+                     , nrounds = 10000
+                     , nfold = 10
+                     , early_stopping_rounds = 10
+                     , num_class = number_of_classes
+                     , objective = "multi:softmax"
+                     ,verbose = FALSE)
+
+xgboost_model <- xgboost(data = dtrain
+                         ,objective = "multi:softmax"
+                         ,num_class = number_of_classes
+                         ,nrounds = xgboost_cv$best_iteration
+                         ,verbose = FALSE)
+
+validation_data_xgb2 <- validation_data %>% 
+  mutate(prediction = predict(xgboost_model, x_test)
+         ,accuracy = ifelse(country == prediction, 1, 0))
+
+boosted_accuracy_woNumLikes2 <- tibble('Model' = 'Boosted Tree', 'Accuracy' = round(mean(validation_data_xgb2$accuracy), 3))
+
+############### Random Forest ##############
+
+rf_model <- randomForest(country ~ ., data = select(training_data, country, neutral, positive, trust, anticipation,
+                                                    negative, joy, surprise, disgust, anger, sadness, fear))
+
+validation_data_rf2 <- validation_data %>% 
+  mutate(prediction = predict(rf_model, validation_data)
+         ,accuracy = ifelse(country == prediction, 1, 0))
+
+rf_accuracy_woNumLikes2 <- tibble('Model' = 'Random Forest', 'Accuracy' = round(mean(validation_data_rf2$accuracy), 3))
+
+############## Bagging ####################
+
+
+bag_model <- randomForest(country ~ .
+                          , data = select(training_data, country, neutral, positive, trust, anticipation,
+                                          negative, joy, surprise, disgust, anger, sadness, fear)
+                          , mtry = dim(select(training_data, country, neutral, positive, trust, anticipation,
+                                              negative, joy, surprise, disgust, anger, sadness, fear))[2] - 1)
+
+validation_data_bag2 <- validation_data %>% 
+  mutate(prediction = predict(bag_model, validation_data)
+         ,accuracy = ifelse(country == prediction, 1, 0))
+
+bag_accuracy_woNumLikes2 <- tibble('Model' = 'Bagging', 'Accuracy' = round(mean(validation_data_bag2$accuracy), 3))
+```
+
+<br>
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+accuracies <- bind_rows(boosted_accuracy_woNumLikes2, rf_accuracy_woNumLikes2, bag_accuracy_woNumLikes2)
+accuracies %>%  kable(align = c('c', 'c'), format = 'html') %>% 
+  kable_styling(full_width = F, position = "left")
+```
+
+<br> 
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE, fig.height = 8, fig.width = 8, fig.align = "center"}
+varImpPlot(rf_model)
+```
+
+
 # Next Steps
 
-* Investigate the bias in our prediciton. 100% accuracy is not realistic.
+* Further investigate the bias in our prediciton. (Seems [still?] too good to be true. Where's the catch?)
 * Investigate Canada. Why are they are so emotional?
-* Be more ambitious in our prediction. Make it more granular (e.g. region, state, university)
+* Be more ambitious in our prediction. Make it more granular (e.g. region, state, university or more countries)
 * Topic Modeling

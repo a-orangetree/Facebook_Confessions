@@ -75,7 +75,7 @@ combined_data$university[combined_data$state == "MA"] <- "Northeast"
 
 combined_data$university <- factor(combined_data$university)
 
-
+stop()
 ########### EDA ############
 
 
