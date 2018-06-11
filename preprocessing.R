@@ -1,267 +1,72 @@
 library(tidyverse)
-library(tokenizers)
+library(lubridate)
 library(tm)
 
 
-######## Import data ################
+########### Import Data ################
+set.seed(123456)
 
+us_data <- read_csv('data/us_new.csv') %>% 
+  mutate(country = 'united_states') %>% 
+  filter(!is.na(university)) %>% 
+  rename('region' = 'Region')
 
-fcb_data <- read_csv('data/FCB.csv') 
+uk_data <- read_csv('data/uk_original.csv') %>% 
+  mutate(country = 'united_kingdom'
+         ,state = 'united_kingdom'
+         ,region = 'united_kingdom')
 
-# fcb_data <- fcb_data %>%
-#   filter(!text == 'NA' & !is.na(text)) %>%
-#   select(-X1) %>%
-#   mutate(id = as.character(seq(1, nrow(.), 1))
-#          ,label = str_replace(label, 'Mental Health', 'Mental_Health')
-#          ,label = str_replace(label, 'Money/Financial', 'Money_Financial')
-#          ,label = str_replace(label, 'Race/Protected Groups', 'Race_ProtectedGroups'))
+canada_data <- read_csv('data/canada_original.csv') %>% 
+  mutate(country = 'canada'
+         ,state = 'canada'
+         ,region = 'canada')
 
-(number_lines <- count(fcb_data, label) %>% 
-    rename('num_lines' = 'n'))
+i_words <- c("\\s*i\\s+", "i've", "i'm", "i'll", "i'd")
+u_words <- c("you\\s", "you've", "you're", "you'll", "you'd", "\\su\\s", "u've", "u're", "u'll", "u'd")
 
-# fcb_data %>% filter(str_detect(text, 'TAMU'))
+i_words <- str_c(i_words, collapse = "|")
+u_words <- str_c(u_words, collapse = "|")
 
+combined_data <- bind_rows(us_data, uk_data, canada_data) %>% 
+  rename('id' = 'X1') %>% 
+  mutate(id = as.integer(seq(1, dim(.)[1], 1))
+         ,year = year(time)
+         ,month = month(time)
+         ,day = day(time)
+         ,hour = hour(time)
+         ,message = str_to_lower(message)
+         ,num_words = lengths(gregexpr("\\W+", message)) + 1
+         ,characters_per_word = str_length(message) / num_words
+         ,i_count = str_count(message, i_words)
+         ,i_perc = str_count(message, i_words) / num_words 
+         ,u_count = str_count(message, u_words)
+         ,u_perc = str_count(message, u_words) / num_words
+         ,iu_ratio = i_count / (u_count + 1)
+         ,stopword_count = str_count(message, stopwords())
+         ,stopword_perc = str_count(message, stopwords()) / num_words
+         ,year = factor(year)
+         ,month = factor(month)
+         ,day = factor(day)
+         ,hour = factor(hour)
+         ,state = factor(state)
+         ,region = factor(region)) %>% 
+  select(-post_id, -time)
 
-####### Builds a Bag of Words ################
+# Clean junk from raw data
+combined_data$university[combined_data$university == "Purdue University--West Lafayette:574281165929300posts"] <- "Purdue University"
+combined_data$university[combined_data$university == "Rhodes College:418059621625397posts"] <- "Rhodes College"
+combined_data$university[combined_data$university == "Rutgers, the State University of NJ:599429153419231posts"] <- "Rutgers University"
+combined_data$university[combined_data$university == "Syracuse University:206226116186911posts"] <- "Syracuse University"
+combined_data$university[combined_data$university == "Rice University:266887743442106posts"] <- "Rice University"
+combined_data$university[combined_data$university == "Rensselaer Polytechnic Institute:168590540005034posts"] <- "Rensselaer Polytechnic Institute"
+combined_data$university[combined_data$university == "Pepperdine University:1426040870946133posts"] <- "Pepperdine University"
+combined_data$university[combined_data$university == "Pepperdine University:480574488664604posts"] <- "Pepperdine University"
+combined_data$university[combined_data$university == "Pennsylvania State University--University Park:479597885433626posts"] <- "Pennsylvania State University--University Park"
+combined_data$university[combined_data$university == "Pepperdine University:480574488664604posts"] <- "Pepperdine University"
+combined_data$university[combined_data$university == "Princeton:423593751057693posts"] <- "Princeton"
+combined_data$university[combined_data$university == "Smith College:656392224417505posts"] <- "Smith College"
+combined_data$university[combined_data$university == "Southwestern University:154639111371519posts"] <- "Southwestern University"
+combined_data$university[combined_data$university == "St. Lawrence University:578380385537855posts"] <- "St. Lawrence University" 
+combined_data$university[combined_data$state == "MA"] <- "Northeast" 
 
-
-# all_tokens <- NULL
-# for (line in seq(1:length(fcb_data$text))) {
-# 
-#   tokens <- tokenize_words(fcb_data$text)[[line]]
-#   all_tokens <- c(all_tokens, tokens)
-# }
-# write_csv(tibble(all_tokens), 'data/all_tokens.csv')
-all_tokens <- read_csv('data/all_tokens.csv')
-non_stopwords <- filter(all_tokens, !all_tokens %in% stopwords('english'))
-
-########## Builds a Bag of Words for each Label ##############
-
-
-# None <- tibble()
-# Sex <- tibble()
-# Mental_Health <- tibble()
-# Money_Financial <- tibble()
-# Medical <- tibble()
-# Drugs <- tibble()
-# Race_ProtectedGroups <- tibble()
-# Excretions <- tibble()
-# Academics <- tibble()
-# Death <- tibble()
-# 
-# None_clean <- tibble()
-# Sex_clean <- tibble()
-# Mental_Health_clean <- tibble()
-# Money_Financial_clean <- tibble()
-# Medical_clean <- tibble()
-# Drugs_clean <- tibble()
-# Race_ProtectedGroups_clean <- tibble()
-# Excretions_clean <- tibble()
-# Academics_clean <- tibble()
-# Death_clean <- tibble()
-# 
-# None_total_len <- 0
-# Sex_total_len <- 0
-# Mental_total_len <- 0
-# Money_total_len <- 0
-# Medical_total_len <- 0
-# Drugs_total_len <- 0
-# Race_total_len <- 0
-# Excretions_total_len <- 0
-# Academics_total_len <- 0
-# Death_total_len <- 0
-# 
-# ui_words <- c('you', "u", "ur", "your", "youre", "you're", "you'll", "you'd",'i', "i've", "i'd", "i'm", "i'll")
-# u_words <- c('you', "u", "ur", "your", "youre", "you're", "you'll", "you'd")
-# i_words <- c('i', "i've", "i'd", "i'm", "i'll")
-# custom_stopwords <- stopwords('english')[!stopwords('english') %in% ui_words]
-# custom_stopwords <- c(custom_stopwords, 'like', 'just', 'can', 'will')
-# 
-# myStopwords <- c('can', 'say', 'one', 'way', 'use', 'also', 'howev', 'tell', 'will', 'much', 'take'
-#                  ,'tend', 'even', 'like', 'particular', 'rather', 'said', 'get', 'well', 'make', 'ask', 'come'
-#                  ,'end', 'first', 'two', 'help', 'often', 'may', 'might', 'see', 'someth', 'thing', 'point'
-#                  ,'post', 'look', 'right', 'now', 'think', 'anoth', 'put', 'set', 'new', 'want', 'sure', 'kind'
-#                  ,'larg', 'yes', 'day', 'etc', 'quit', 'sinc', 'attempt', 'lack', 'seen', 'awar', 'littl', 'ever'
-#                  ,'moreov', 'though', 'found', 'abl', 'enough', 'far', 'earli', 'away', 'achiev', 'draw', 'last'
-#                  ,'brief', 'bit', 'entir', 'lot', 'wish', 'what', 'just', 'that', 'let', 'dont', 'cant', 'still')
-# 
-# fcb_data$total_words <- 0
-# fcb_data$num_stopwords <- 0
-# fcb_data$u_word_count <- 0
-# fcb_data$i_word_count <- 0
-# 
-# for (line in seq(1:length(fcb_data$text))) {
-# 
-#   tokens <- tibble(t = tokenize_words(fcb_data$text)[[line]])
-#   len1 <- dim(tokens)[1]
-#   tokens <- tokens %>% filter(!t %in% custom_stopwords) #%>%
-#     # mutate(t = stemDocument(t))
-# 
-#   u_word_count <- dim(tokens %>% filter(t %in% u_words))[1]
-#   fcb_data$u_word_count[line] <- u_word_count
-# 
-#   i_word_count <- dim(tokens %>% filter(t %in% i_words))[1]
-#   fcb_data$i_word_count[line] <- i_word_count
-# 
-#   clean_tokens <- tokens %>%
-#     filter(!t %in% stopwords('english')) %>%
-#     filter(!t %in% myStopwords)
-#   len2 <- dim(clean_tokens)[1]
-# 
-#   num_stopwords <- len1 - len2
-#   total_words <- len1
-# 
-#   fcb_data$total_words[line] <- total_words
-#   fcb_data$num_stopwords[line] <- num_stopwords
-# 
-#   label <- fcb_data$label[line]
-# 
-#   if (label == 'None') {
-#     None <- c(None, tokens)
-#     None_clean <- c(None_clean, clean_tokens)
-#     None_total_len <- None_total_len + length(tokens$t)
-#     }
-#   else if (label == 'Sex') {
-#     Sex <- c(Sex, tokens)
-#     Sex_clean <- c(Sex_clean, clean_tokens)
-#     Sex_total_len <- Sex_total_len + length(tokens$t)
-#     }
-#   else if (label == 'Mental_Health') {
-#     Mental_Health <- c(Mental_Health, tokens)
-#     Mental_Health_clean <- c(Mental_Health_clean, clean_tokens)
-#     Mental_total_len <- Mental_total_len + length(tokens$t)
-#     }
-#   else if (label == 'Money_Financial') {
-#     Money_Financial <- c(Money_Financial, tokens)
-#     Money_Financial_clean <- c(Money_Financial_clean, clean_tokens)
-#     Money_total_len <- Money_total_len + length(tokens$t)
-#     }
-#   else if (label == 'Medical') {
-#     Medical <- c(Medical, tokens)
-#     Medical_clean <- c(Medical_clean, clean_tokens)
-#     Medical_total_len <- Medical_total_len + length(tokens$t)
-#     }
-#   else if (label == 'Drugs') {
-#     Drugs <- c(Drugs, tokens)
-#     Drugs_clean <- c(Drugs_clean, clean_tokens)
-#     Drugs_total_len <- Drugs_total_len + length(tokens$t)
-#     }
-#   else if (label == 'Race_ProtectedGroups') {
-#     Race_ProtectedGroups <- c(Race_ProtectedGroups, tokens)
-#     Race_ProtectedGroups_clean <- c(Race_ProtectedGroups_clean, clean_tokens)
-#     Race_total_len <- Race_total_len + length(tokens$t)
-#     }
-#   else if (label == 'Excretions') {
-#     Excretions <- c(Excretions, tokens)
-#     Excretions_clean <- c(Excretions_clean, clean_tokens)
-#     Excretions_total_len <- Excretions_total_len + length(tokens$t)
-#     }
-#   else if (label == 'Academics') {
-#     Academics <- c(Academics, tokens)
-#     Academics_clean <- c(Academics_clean, clean_tokens)
-#     Academics_total_len <- Academics_total_len + length(tokens$t)
-#     }
-#   else if (label == 'Death') {
-#     Death <- c(Death, tokens)
-#     Death_clean <- c(Death_clean, clean_tokens)
-#     Death_total_len <- Death_total_len + length(tokens$t)
-#     }
-# }
-# 
-# 
-# summary <- bind_cols(tibble(None = None_total_len)
-#           ,tibble(Sex = Sex_total_len)
-#           ,tibble(Mental_Health = Mental_total_len)
-#           ,tibble(Money_Financial = Money_total_len)
-#           ,tibble(Medical = Medical_total_len)
-#           ,tibble(Drugs = Drugs_total_len)
-#           ,tibble(Race_ProtectedGroups = Race_total_len)
-#           ,tibble(Excretions = Excretions_total_len)
-#           ,tibble(Academics = Academics_total_len)
-#           ,tibble(Death = Death_total_len)) %>%
-#   gather(key = 'label', value = 'num_words') %>%
-#   inner_join(number_lines, by = c('label'))
-# 
-# summary <- summary %>%
-#   mutate(avg_words = num_words / num_lines)
-# 
-# 
-# write_csv(summary, 'data/label_summary.csv')
-# 
-# 
-# None <- tibble(unlist(None))
-# Sex <- tibble(unlist(Sex))
-# Mental_Health <- tibble(unlist(Mental_Health))
-# Medical <- tibble(unlist(Medical))
-# Money_Financial <- tibble(unlist(Money_Financial))
-# Drugs <- tibble(unlist(Drugs))
-# Race_ProtectedGroups <- tibble(unlist(Race_ProtectedGroups))
-# Excretions <- tibble(unlist(Excretions))
-# Academics <- tibble(unlist(Academics))
-# Death <- tibble(unlist(Death))
-# 
-# 
-# None_clean <- tibble(unlist(None_clean))
-# Sex_clean <- tibble(unlist(Sex_clean))
-# Mental_Health_clean <- tibble(unlist(Mental_Health_clean))
-# Medical_clean <- tibble(unlist(Medical_clean))
-# Money_Financial_clean <- tibble(unlist(Money_Financial_clean))
-# Drugs_clean <- tibble(unlist(Drugs_clean))
-# Race_ProtectedGroups_clean <- tibble(unlist(Race_ProtectedGroups_clean))
-# Excretions_clean <- tibble(unlist(Excretions_clean))
-# Academics_clean <- tibble(unlist(Academics_clean))
-# Death_clean <- tibble(unlist(Death_clean))
-# 
-# 
-# write_csv(fcb_data, 'data/FCB.csv')
-# 
-# 
-# write_csv(None, 'data/None_words.csv')
-# write_csv(Sex, 'data/Sex_words.csv')
-# write_csv(Mental_Health, 'data/Mental_words.csv')
-# write_csv(Money_Financial, 'data/Money_words.csv')
-# write_csv(Medical, 'data/Medical_words.csv')
-# write_csv(Drugs, 'data/Drugs_words.csv')
-# write_csv(Race_ProtectedGroups, 'data/Race_words.csv')
-# write_csv(Excretions, 'data/Excretions_words.csv')
-# write_csv(Academics, 'data/Academics_words.csv')
-# write_csv(Death, 'data/Death_words.csv')
-# 
-# 
-# write_csv(None_clean, 'data/None_words_clean.csv')
-# write_csv(Sex_clean, 'data/Sex_words_clean.csv')
-# write_csv(Mental_Health_clean, 'data/Mental_words_clean.csv')
-# write_csv(Money_Financial_clean, 'data/Money_words_clean.csv')
-# write_csv(Medical_clean, 'data/Medical_words_clean.csv')
-# write_csv(Drugs_clean, 'data/Drugs_words_clean.csv')
-# write_csv(Race_ProtectedGroups_clean, 'data/Race_words_clean.csv')
-# write_csv(Excretions_clean, 'data/Excretions_words_clean.csv')
-# write_csv(Academics_clean, 'data/Academics_words_clean.csv')
-# write_csv(Death_clean, 'data/Death_words_clean.csv')
-
-
-None <- read_csv('data/None_words.csv', col_names = F)
-Sex <- read_csv('data/Sex_words.csv', col_names = F)
-Mental_Health <- read_csv('data/Mental_words.csv', col_names = F)
-Money_Financial <- read_csv('data/Money_words.csv', col_names = F)
-Medical <- read_csv('data/Medical_words.csv', col_names = F)
-Drugs <- read_csv('data/Drugs_words.csv', col_names = F)
-Race_ProtectedGroups <- read_csv('data/Race_words.csv', col_names = F)
-Excretions <- read_csv('data/Excretions_words.csv', col_names = F)
-Academics <- read_csv('data/Academics_words.csv', col_names = F)
-Death <- read_csv('data/Death_words.csv', col_names = F)
-
-
-None_clean <- read_csv('data/None_words_clean.csv', col_names = F)
-Sex_clean <- read_csv('data/Sex_words_clean.csv', col_names = F)
-Mental_Health_clean <- read_csv('data/Mental_words_clean.csv', col_names = F)
-Money_Financial_clean <- read_csv('data/Money_words_clean.csv', col_names = F)
-Medical_clean <- read_csv('data/Medical_words_clean.csv', col_names = F)
-Drugs_clean <- read_csv('data/Drugs_words_clean.csv', col_names = F)
-Race_ProtectedGroups_clean <- read_csv('data/Race_words_clean.csv', col_names = F)
-Excretions_clean <- read_csv('data/Excretions_words_clean.csv', col_names = F)
-Academics_clean <- read_csv('data/Academics_words_clean.csv', col_names = F)
-Death_clean <- read_csv('data/Death_words_clean.csv', col_names = F)
-
-
-summary <- read_csv('data/label_summary.csv')
+combined_data$university <- factor(combined_data$university)
