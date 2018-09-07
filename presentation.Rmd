@@ -1,6 +1,7 @@
 ---
 title: "Inference and Prediction of Country from Facebook Confessions Forums"
-author: "Adrian Naranjo, Ivan Carrasco, & Sonam Awachar"
+author: "Adrian Naranjo"
+output: html_document
 ---
 
 <br>
